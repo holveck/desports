@@ -1,5 +1,11 @@
 """
 School lookup and extraction utilities.
+
+This module:
+- Loads canonical school names and aliases from data/schools.csv
+- Normalizes text for safe matching
+- Extracts school_id from natural-language questions
+- Avoids false positives by using word-boundary and longest-match logic
 """
 
 import pandas as pd
@@ -7,16 +13,35 @@ import re
 from functools import lru_cache
 
 
+# --------------------------------------------------
+# Text normalization
+# --------------------------------------------------
+
 def normalize(text):
+    """
+    Normalize text by:
+    - converting to lowercase
+    - removing punctuation
+    - collapsing whitespace
+    """
     text = text.lower()
     text = re.sub(r"[^\w\s]", "", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
+# --------------------------------------------------
+# School lookup loading
+# --------------------------------------------------
+
 @lru_cache(maxsize=1)
 def load_school_lookup():
     """
-    Load schools.csv and return a dict mapping alias -> school record.
+    Load schools.csv and return a dict mapping
+    normalized alias -> school record.
+
+    Each record contains:
+    - school_id
+    - canonical_name
     """
     df = pd.read_csv("data/schools.csv")
 
@@ -28,7 +53,7 @@ def load_school_lookup():
 
         aliases = [canonical]
 
-        if isinstance(row.get("aliases"), str):
+        if "aliases" in row and isinstance(row["aliases"], str):
             aliases.extend(
                 a.strip() for a in row["aliases"].split(",") if a.strip()
             )
@@ -43,18 +68,18 @@ def load_school_lookup():
     return lookup
 
 
+# --------------------------------------------------
+# School extraction
+# --------------------------------------------------
+
 def extract_school(text):
     """
-    Return school_id if a known school is mentioned in the text.
-    """
-    lookup = load_school_lookup()
-    normalized_text = normalize(text)
+    Return the best-matching school_id from text.
 
-    for alias, record in lookup.items():
-        def extract_school(text):
-    """
-    Return the best-matching school_id using
-    longest-match + word-boundary logic.
+    Matching rules:
+    - ignore aliases shorter than 4 characters
+    - match on whole words / phrases using word boundaries
+    - if multiple schools match, prefer the longest alias
     """
     lookup = load_school_lookup()
     normalized_text = normalize(text)
@@ -62,11 +87,11 @@ def extract_school(text):
     matches = []
 
     for alias, record in lookup.items():
-        # Ignore extremely short aliases (e.g. "cr", "hs")
+        # Ignore extremely short aliases (e.g., "cr", "hs", "st")
         if len(alias) < 4:
             continue
 
-        # Match alias as a whole word / phrase
+        # Match alias as a whole word or phrase
         pattern = r"\b" + re.escape(alias) + r"\b"
 
         if re.search(pattern, normalized_text):
@@ -79,5 +104,3 @@ def extract_school(text):
     matches.sort(key=lambda x: len(x[0]), reverse=True)
 
     return matches[0][1]["school_id"]
-
-    return None
