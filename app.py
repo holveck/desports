@@ -30,15 +30,23 @@ st.write(
 
 @st.cache_data
 def load_data():
-    team_df = pd.read_csv("data/results_team.csv")
-    rec_df = pd.read_csv("data/recognitions.csv")
+    team_df = pd.read_csv(
+        "data/results_team.csv",
+        encoding="latin-1",
+        engine="python"
+    )
+
+    rec_df = pd.read_csv(
+        "data/recognitions.csv",
+        encoding="latin-1",
+        engine="python"
+    )
 
     # Normalize champion names to avoid hidden whitespace / Unicode issues
     team_df["champion"] = (
         team_df["champion"]
         .astype(str)
         .str.strip()
-        .apply(lambda x: x.encode("utf-8", "ignore").decode("utf-8"))
     )
 
     return team_df, rec_df
