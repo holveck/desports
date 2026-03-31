@@ -1,3 +1,12 @@
+from utils.schools import load_school_lookup
+
+def get_canonical_school_name(school_id):
+    lookup = load_school_lookup()
+    for record in lookup.values():
+        if record["school_id"] == school_id:
+            return record["canonical_name"]
+    return None
+    
 def execute_query(query, team_df, rec_df):
     explanation = []
     filters = query.get("filters", {})
