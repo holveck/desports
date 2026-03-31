@@ -3,21 +3,20 @@ Rule-based parser for Delaware high school sports questions.
 """
 
 import re
-from typing import Optional, Dict, Any
 
 from utils.sport_config import SPORT_CONFIG
 from utils.schools import extract_school
 
 
-# ------------------------
+# --------------------------------------------------
 # Text normalization
-# ------------------------
+# --------------------------------------------------
 
-def normalize(text: str) -> str:
+def normalize(text):
     return re.sub(r"\s+", " ", text.lower().strip())
 
 
-def remove_noise(text: str) -> str:
+def remove_noise(text):
     noise_words = [
         "state",
         "high school",
@@ -40,16 +39,18 @@ def remove_noise(text: str) -> str:
     return normalize(text)
 
 
-# ------------------------
+# --------------------------------------------------
 # Attribute extractors
-# ------------------------
+# --------------------------------------------------
 
-def extract_year(text: str) -> Optional[int]:
+def extract_year(text):
     match = re.search(r"\b(19|20)\d{2}\b", text)
-    return int(match.group()) if match else None
+    if match:
+        return int(match.group())
+    return None
 
 
-def extract_gender(text: str) -> Optional[str]:
+def extract_gender(text):
     if "girls" in text:
         return "girls"
     if "boys" in text:
@@ -57,47 +58,46 @@ def extract_gender(text: str) -> Optional[str]:
     return None
 
 
-def extract_sport(text: str) -> Optional[str]:
+def extract_sport(text):
     for sport in SPORT_CONFIG.keys():
         if sport in text:
             return sport
     return None
 
 
-def extract_classification(text: str) -> Optional[str]:
+def extract_classification(text):
     match = re.search(r"class\s*(1a|2a|3a)", text)
     if match:
         return f"Class {match.group(1).upper()}"
 
     match = re.search(r"division\s*(i{1,2})", text)
     if match:
-        roman = match.group(1).upper()
-        return f"Division {roman}"
+        return f"Division {match.group(1).upper()}"
 
     return None
 
 
-# ------------------------
+# --------------------------------------------------
 # Intent detection
-# ------------------------
+# --------------------------------------------------
 
-def detect_intent(text: str) -> str:
-    if any(p in text for p in ["how many", "most"]):
+def detect_intent(text):
+    if "how many" in text or "most" in text:
         return "aggregation"
     return "team_result"
 
 
-# ------------------------
+# --------------------------------------------------
 # Main parser
-# ------------------------
+# --------------------------------------------------
 
-def parse_rule_based(question: str) -> Optional[Dict[str, Any]]:
+def parse_rule_based(question):
     text = normalize(question)
     cleaned = remove_noise(text)
 
     sport = extract_sport(cleaned)
     if not sport:
-        return None  # LLM fallback
+        return None  # fall back to LLM
 
     config = SPORT_CONFIG[sport]
 
@@ -140,4 +140,3 @@ def parse_rule_based(question: str) -> Optional[Dict[str, Any]]:
         query["needs_clarification"].append("classification")
 
     return query
-``
