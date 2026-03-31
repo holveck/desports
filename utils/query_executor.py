@@ -1,13 +1,3 @@
-"""
-Query execution layer.
-
-Responsibilities:
-- Apply row-level filters safely and consistently
-- Execute team-result queries
-- Execute aggregation (title counts)
-- Execute ranking (most titles)
-"""
-
 from utils.schools import load_school_lookup
 
 
