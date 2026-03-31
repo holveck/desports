@@ -51,7 +51,33 @@ def extract_school(text):
     normalized_text = normalize(text)
 
     for alias, record in lookup.items():
-        if alias in normalized_text:
-            return record["school_id"]
+        def extract_school(text):
+    """
+    Return the best-matching school_id using
+    longest-match + word-boundary logic.
+    """
+    lookup = load_school_lookup()
+    normalized_text = normalize(text)
+
+    matches = []
+
+    for alias, record in lookup.items():
+        # Ignore extremely short aliases (e.g. "cr", "hs")
+        if len(alias) < 4:
+            continue
+
+        # Match alias as a whole word / phrase
+        pattern = r"\b" + re.escape(alias) + r"\b"
+
+        if re.search(pattern, normalized_text):
+            matches.append((alias, record))
+
+    if not matches:
+        return None
+
+    # Prefer the longest (most specific) alias
+    matches.sort(key=lambda x: len(x[0]), reverse=True)
+
+    return matches[0][1]["school_id"]
 
     return None
