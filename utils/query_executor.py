@@ -2,12 +2,29 @@ def execute_query(query, team_df, rec_df):
     explanation = []
 
     if query["intent"] == "team_result":
-        df = team_df.copy()
-        for field, value in query["filters"].items():
-            if value:
-                df = df[df[field] == value]
-                explanation.append(f"Filtered by {field} = {value}")
-        return df, explanation
+    df = team_df.copy()
+
+    filters = query["filters"]
+
+    if filters.get("sport"):
+        df = df[df["sport"] == filters["sport"]]
+        explanation.append(f"Filtered by sport = {filters['sport']}")
+
+    if filters.get("gender"):
+        df = df[df["gender"] == filters["gender"]]
+        explanation.append(f"Filtered by gender = {filters['gender']}")
+
+    if filters.get("year"):
+        df = df[df["year"] == filters["year"]]
+        explanation.append(f"Filtered by year = {filters['year']}")
+
+    if filters.get("classification"):
+        df = df[df["classification"] == filters["classification"]]
+        explanation.append(
+            f"Filtered by classification = {filters['classification']}"
+        )
+
+    return df, explanation
 
     if query["intent"] == "aggregation":
         df = team_df.copy()
