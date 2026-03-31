@@ -1,3 +1,5 @@
 def render_explanation(steps):
-    return "
-".join(["**How this answer was found:**"] + [f"- {s}" for s in steps])
+    lines = ["How this answer was found:"]
+    for step in steps:
+        lines.append(f"- {step}")
+    return "\n".join(lines)
