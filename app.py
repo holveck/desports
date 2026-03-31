@@ -43,7 +43,7 @@ def load_data():
 
     return team_df, rec_df
 
-
+team_df, rec_df = load_data()
 # ---------------------------------
 # Question input
 # ---------------------------------
