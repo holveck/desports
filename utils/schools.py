@@ -1,20 +1,22 @@
 """
-School lookup utilities.
-
-Loads canonical school names and aliases from data/schools.csv
-and provides helpers for entity extraction.
+School lookup and extraction utilities.
 """
 
 import pandas as pd
 import re
 from functools import lru_cache
-from typing import Optional, Dict
 
 
-@lru_cache
-def load_school_lookup() -> Dict[str, Dict[str, str]]:
+def normalize(text):
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+@lru_cache(maxsize=1)
+def load_school_lookup():
     """
-    Returns a dict mapping normalized alias -> school record.
+    Load schools.csv and return a dict mapping alias -> school record.
     """
     df = pd.read_csv("data/schools.csv")
 
@@ -27,10 +29,12 @@ def load_school_lookup() -> Dict[str, Dict[str, str]]:
         aliases = [canonical]
 
         if isinstance(row.get("aliases"), str):
-            aliases.extend(a.strip() for a in row["aliases"].split(","))
+            aliases.extend(
+                a.strip() for a in row["aliases"].split(",") if a.strip()
+            )
 
-        for alias in aliases:
-            key = normalize(alias)
+        for name in aliases:
+            key = normalize(name)
             lookup[key] = {
                 "school_id": school_id,
                 "canonical_name": canonical,
@@ -39,22 +43,15 @@ def load_school_lookup() -> Dict[str, Dict[str, str]]:
     return lookup
 
 
-def normalize(text: str) -> str:
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def extract_school(text: str) -> Optional[str]:
+def extract_school(text):
     """
-    Returns school_id if a school is mentioned, else None.
+    Return school_id if a known school is mentioned in the text.
     """
     lookup = load_school_lookup()
     normalized_text = normalize(text)
 
-    for alias, school in lookup.items():
+    for alias, record in lookup.items():
         if alias in normalized_text:
-            return school["school_id"]
+            return record["school_id"]
 
     return None
-``
