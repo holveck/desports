@@ -32,10 +32,16 @@ st.write(
 def load_data():
     team_df = pd.read_csv("data/results_team.csv")
     rec_df = pd.read_csv("data/recognitions.csv")
+
+    # ✅ Normalize champion names
+    team_df["champion"] = (
+        team_df["champion"]
+        .astype(str)
+        .str.strip()
+        .str.normalize("NFKC")
+    )
+
     return team_df, rec_df
-
-
-team_df, rec_df = load_data()
 
 
 # ---------------------------------
