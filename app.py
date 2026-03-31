@@ -33,12 +33,12 @@ def load_data():
     team_df = pd.read_csv("data/results_team.csv")
     rec_df = pd.read_csv("data/recognitions.csv")
 
-    # ✅ Normalize champion names
+    # Normalize champion names to avoid hidden whitespace / Unicode issues
     team_df["champion"] = (
         team_df["champion"]
         .astype(str)
         .str.strip()
-        .str.normalize("NFKC")
+        .apply(lambda x: x.encode("utf-8", "ignore").decode("utf-8"))
     )
 
     return team_df, rec_df
