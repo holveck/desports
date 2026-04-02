@@ -57,4 +57,3 @@ def normalize_query(query):
 
     query["filters"] = filters
     return query
-``
