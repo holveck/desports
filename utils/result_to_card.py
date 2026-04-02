@@ -5,35 +5,37 @@ from utils.card_descriptor import build_card_descriptor
 
 
 # --------------------------------------------------
-# Text sanitation utility (FINAL)
+# Normalization utilities
 # --------------------------------------------------
 
+def normalize_school_name(name: str) -> str:
+    """
+    Normalize school names so results_team.csv names
+    reliably match schools.csv canonical_name.
+    """
+    return (
+        str(name)
+        .replace("\u00a0", " ")   # normalize non-breaking spaces
+        .lower()
+        .strip()
+        .replace("’", "'")
+        .replace("–", "-")
+    )
+
+
 def clean_text(value):
-    """
-    Normalize any input to plain, visible text.
-
-    This function is intentionally defensive and handles:
-    - double-escaped HTML entities (e.g. &amp;lt;div&amp;gt;)
-    - single-escaped entities (e.g. &lt;div&gt;)
-    - literal HTML tags (<div>)
-    - historical markup artifacts
-
-    Output is guaranteed to be plain text.
-    """
-
     if value is None:
         return None
 
     value = str(value)
 
-    # ✅ Repeatedly unescape until stable
-    # Handles cases where HTML was escaped multiple times historically
+    # repeatedly unescape HTML entities until stable
     prev = None
     while value != prev:
         prev = value
         value = html.unescape(value)
 
-    # ✅ Strip any remaining HTML tags
+    # strip any literal HTML tags (defensive)
     value = re.sub(r"<[^>]+>", "", value)
 
     return value.strip()
@@ -45,17 +47,13 @@ def clean_text(value):
 
 def result_to_card(result, explanation, school_styles, school_name_lookup):
     """
-    Convert executor output into a generic card descriptor.
-
-    IMPORTANT:
-    - This function NEVER branches on intent
-    - It only branches on result *shape*
-    - The card layout is always the same
+    Convert executor output into a card descriptor.
+    Branches only on result shape, never on intent.
     """
 
-    # --------------------------------------------------
-    # Case 1: Single championship row (simple recall)
-    # --------------------------------------------------
+    # -------------------------------
+    # Case 1: single championship row
+    # -------------------------------
     if (
         isinstance(result, pd.DataFrame)
         and len(result) == 1
@@ -63,7 +61,11 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
     ):
         row = result.iloc[0]
 
-        # Build score string with optional score_note
+        champ_name = clean_text(row["champion"])
+        school_id = school_name_lookup.get(
+            normalize_school_name(champ_name)
+        )
+
         score = None
         if (
             pd.notna(row.get("champion_score"))
@@ -80,49 +82,6 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
         )
 
         return build_card_descriptor(
-            title=clean_text(
-                f'{row["year"]} {row["classification"]} {row["sport"].title()} State Champion'
-            ),
-            primary_value=clean_text(row["champion"]),
+            title=f'{row["year"]} {row["classification"]} {row["sport"].title()} State Champion',
+            primary_value=champ_name,
             secondary_value=clean_text(secondary),
-            school_id=row.get("school_id"),
-            details_rows=result,
-            school_styles=school_styles,
-        )
-
-    # --------------------------------------------------
-    # Case 2: Ranking result (e.g. "most titles")
-    # --------------------------------------------------
-    if (
-        isinstance(result, pd.DataFrame)
-        and {"champion", "titles"}.issubset(result.columns)
-        and len(result) >= 1
-    ):
-        top = result.iloc[0]
-
-        return build_card_descriptor(
-            title="Most state championships",
-            primary_value=clean_text(top["champion"]),
-            secondary_value=clean_text(f'{top["titles"]} titles'),
-            school_id=None,
-            details_rows=result,
-            school_styles=school_styles,
-        )
-
-    # --------------------------------------------------
-    # Case 3: Aggregation result (numeric answer)
-    # --------------------------------------------------
-    if isinstance(result, int):
-        return build_card_descriptor(
-            title="Total state championships",
-            primary_value=clean_text(str(result)),
-            secondary_value=None,
-            school_id=None,
-            details_rows=None,
-            school_styles=school_styles,
-        )
-
-    # --------------------------------------------------
-    # Fallback (should be rare)
-    # --------------------------------------------------
-    return None
