@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 
 def render_card(card):
-    border_color = card.get("accent_color") or "#DDDDDD"
+    border_color = card.get("primary_color") or "#DDDDDD"
 
     html_block = f"""
     <div style="
