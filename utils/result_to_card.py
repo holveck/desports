@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import html
 from utils.card_descriptor import build_card_descriptor
 
 
@@ -10,13 +11,20 @@ from utils.card_descriptor import build_card_descriptor
 def clean_text(value):
     """
     Enforce a hard invariant:
-    card text fields may NEVER contain HTML.
+    Card text fields must be plain text only.
+    This removes:
+    - HTML entities (e.g. &lt;div&gt;)
+    - Literal HTML tags
     """
     if value is None:
         return None
-    value = str(value)
-    # Strip any legacy or accidental HTML tags
+
+    # Convert HTML entities back to literal characters
+    value = html.unescape(str(value))
+
+    # Strip any HTML tags
     value = re.sub(r"<[^>]*>", "", value)
+
     return value.strip()
 
 
@@ -27,9 +35,7 @@ def clean_text(value):
 def result_to_card(result, explanation, school_styles):
     """
     Convert executor output into a generic card descriptor.
-
-    This function branches ONLY on result shape,
-    never on intent type.
+    Branches ONLY on result shape, never on intent.
     """
 
     # --------------------------------------------------
@@ -42,7 +48,6 @@ def result_to_card(result, explanation, school_styles):
     ):
         row = result.iloc[0]
 
-        # Build score string with optional score_note
         score = None
         if (
             pd.notna(row.get("champion_score"))
@@ -70,7 +75,7 @@ def result_to_card(result, explanation, school_styles):
         )
 
     # --------------------------------------------------
-    # Case 2: Ranking result (e.g. "most titles")
+    # Case 2: Ranking result
     # --------------------------------------------------
     if (
         isinstance(result, pd.DataFrame)
@@ -89,7 +94,7 @@ def result_to_card(result, explanation, school_styles):
         )
 
     # --------------------------------------------------
-    # Case 3: Aggregation (numeric answer)
+    # Case 3: Aggregation (numeric)
     # --------------------------------------------------
     if isinstance(result, int):
         return build_card_descriptor(
@@ -101,7 +106,4 @@ def result_to_card(result, explanation, school_styles):
             school_styles=school_styles,
         )
 
-    # --------------------------------------------------
-    # Fallback (should be rare)
-    # --------------------------------------------------
     return None
