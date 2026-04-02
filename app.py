@@ -46,7 +46,7 @@ def load_data():
         engine="python",
     )
 
-    # Normalize entity-encoded text once at ingestion
+    # defensively normalize entity-encoded strings
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
@@ -70,12 +70,22 @@ def load_school_styles():
     }
 
 
-# ✅ STEP 1: canonical school name → school_id lookup
 @st.cache_data
 def load_school_name_lookup():
+    """
+    Build canonical_name → school_id mapping,
+    using the SAME normalization as result_to_card.
+    """
     df = pd.read_csv("data/schools.csv")
     return {
-        row["canonical_name"].strip(): row["school_id"]
+        (
+            str(row["canonical_name"])
+            .replace("\u00a0", " ")
+            .lower()
+            .strip()
+            .replace("’", "'")
+            .replace("–", "-")
+        ): row["school_id"]
         for _, row in df.iterrows()
     }
 
@@ -130,7 +140,6 @@ result, explanation = execute_query(query, team_df, rec_df)
 # Render answer card
 # ---------------------------------
 
-# ✅ STEP 2: pass school_name_lookup into result_to_card
 card = result_to_card(
     result=result,
     explanation=explanation,
@@ -145,7 +154,7 @@ else:
 
 
 # ---------------------------------
-# Explanation (plain text)
+# Explanation
 # ---------------------------------
 
 with st.expander("How this answer was found"):
