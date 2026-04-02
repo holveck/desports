@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 def render_card(card):
@@ -11,6 +12,7 @@ def render_card(card):
         padding: 18px;
         margin-bottom: 12px;
         background-color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     ">
         <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">
             {card["title"]}
@@ -30,8 +32,8 @@ def render_card(card):
 
     html_block += "</div>"
 
-    # ✅ THIS LINE IS CRITICAL
-    st.markdown(html_block, unsafe_allow_html=True)
+    # ✅ Render as raw HTML, not Markdown
+    components.html(html_block, height=180)
 
     if card.get("details_rows") is not None:
         with st.expander("Show details"):
