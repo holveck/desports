@@ -29,7 +29,7 @@ st.write(
 
 
 # ---------------------------------
-# Data loading (CRITICAL FIX)
+# Data loading (SAFE HTML NORMALIZATION)
 # ---------------------------------
 
 @st.cache_data
@@ -39,19 +39,21 @@ def load_data():
         encoding="latin-1",
         engine="python",
     )
+
     rec_df = pd.read_csv(
         "data/recognitions.csv",
         encoding="latin-1",
         engine="python",
     )
 
-    # ✅ HARD NORMALIZATION STEP
-    # Undo any historical HTML entity encoding in text fields
+    # ✅ SAFELY normalize all object columns
+    # - unescape HTML entities only for strings
+    # - preserve NaNs and non-string values
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
+            .map(lambda x: html.unescape(x) if isinstance(x, str) else x)
             .astype(str)
-            .map(html.unescape)   # &lt;div&gt; → <div>
             .str.strip()
         )
 
@@ -119,7 +121,7 @@ result, explanation = execute_query(query, team_df, rec_df)
 
 
 # ---------------------------------
-# Render answer card (SOLE ANSWER OUTPUT)
+# Render answer card (ONLY answer output)
 # ---------------------------------
 
 card = result_to_card(
@@ -135,7 +137,7 @@ else:
 
 
 # ---------------------------------
-# Explanation (TEXT ONLY)
+# Explanation (plain text only)
 # ---------------------------------
 
 with st.expander("How this answer was found"):
