@@ -30,6 +30,7 @@ def render_card(card):
 
     html_block += "</div>"
 
+    # ✅ THIS LINE IS CRITICAL
     st.markdown(html_block, unsafe_allow_html=True)
 
     if card.get("details_rows") is not None:
