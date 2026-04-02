@@ -1,29 +1,40 @@
 import pandas as pd
-import re
 import html
+import re
 from utils.card_descriptor import build_card_descriptor
 
 
 # --------------------------------------------------
-# Utilities
+# Text sanitation utility (FINAL)
 # --------------------------------------------------
 
 def clean_text(value):
     """
-    Enforce a hard invariant:
-    Card text fields must be plain text only.
-    This removes:
-    - HTML entities (e.g. &lt;div&gt;)
-    - Literal HTML tags
+    Normalize any input to plain, visible text.
+
+    This function is intentionally defensive and handles:
+    - double-escaped HTML entities (e.g. &amp;lt;div&amp;gt;)
+    - single-escaped entities (e.g. &lt;div&gt;)
+    - literal HTML tags (<div>)
+    - historical markup artifacts
+
+    Output is guaranteed to be plain text.
     """
+
     if value is None:
         return None
 
-    # Convert HTML entities back to literal characters
-    value = html.unescape(str(value))
+    value = str(value)
 
-    # Strip any HTML tags
-    value = re.sub(r"<[^>]*>", "", value)
+    # ✅ Repeatedly unescape until stable
+    # Handles cases where HTML was escaped multiple times historically
+    prev = None
+    while value != prev:
+        prev = value
+        value = html.unescape(value)
+
+    # ✅ Strip any remaining HTML tags
+    value = re.sub(r"<[^>]+>", "", value)
 
     return value.strip()
 
@@ -35,7 +46,11 @@ def clean_text(value):
 def result_to_card(result, explanation, school_styles):
     """
     Convert executor output into a generic card descriptor.
-    Branches ONLY on result shape, never on intent.
+
+    IMPORTANT:
+    - This function NEVER branches on intent
+    - It only branches on result *shape*
+    - The card layout is always the same
     """
 
     # --------------------------------------------------
@@ -48,6 +63,7 @@ def result_to_card(result, explanation, school_styles):
     ):
         row = result.iloc[0]
 
+        # Build score string with optional score_note
         score = None
         if (
             pd.notna(row.get("champion_score"))
@@ -75,7 +91,7 @@ def result_to_card(result, explanation, school_styles):
         )
 
     # --------------------------------------------------
-    # Case 2: Ranking result
+    # Case 2: Ranking result (e.g. "most titles")
     # --------------------------------------------------
     if (
         isinstance(result, pd.DataFrame)
@@ -94,7 +110,7 @@ def result_to_card(result, explanation, school_styles):
         )
 
     # --------------------------------------------------
-    # Case 3: Aggregation (numeric)
+    # Case 3: Aggregation result (numeric answer)
     # --------------------------------------------------
     if isinstance(result, int):
         return build_card_descriptor(
@@ -106,4 +122,7 @@ def result_to_card(result, explanation, school_styles):
             school_styles=school_styles,
         )
 
+    # --------------------------------------------------
+    # Fallback (should be rare)
+    # --------------------------------------------------
     return None
