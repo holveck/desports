@@ -43,7 +43,7 @@ SPORT_CONFIG = {
 
     "wrestling": {
         "gendered": False,
-        "gender_policy": "boys_only",
+        "gender_policy": "gendered",
         "classifications": ["Division I", "Division II", "Overall"],
         "event_type": "mixed",
     },
@@ -64,7 +64,7 @@ SPORT_CONFIG = {
 
     "baseball": {
         "gendered": False,
-        "gender_policy": "boys_only
+        "gender_policy": "boys_only",
         "classifications": ["Overall"],
     },
 
