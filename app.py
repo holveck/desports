@@ -124,7 +124,7 @@ card = result_to_card(
     explanation=explanation,
     school_styles=school_styles,
 )
-st.stop()
+
 if card:
     render_card(card)
 else:
