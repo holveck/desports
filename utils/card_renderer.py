@@ -1,31 +1,41 @@
 import streamlit as st
+import html
+
 
 def render_card(card):
     border_color = card.get("accent_color") or "#DDDDDD"
 
-    st.markdown(
-        f"""
-        <div style="
-            border: 3px solid {border_color};
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 12px;
-            background-color: white;
-        ">
-            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">
-                {card["title"]}
-            </div>
+    title = html.escape(card["title"])
+    primary = html.escape(card["primary_value"])
+    secondary = html.escape(card["secondary_value"]) if card.get("secondary_value") else None
 
-            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">
-                {card["primary_value"]}
-            </div>
-
-            {f'<div style="font-size: 1rem; color: #555;">{card["secondary_value"]}</div>'
-             if card.get("secondary_value") else ''}
+    html_block = f"""
+    <div style="
+        border: 3px solid {border_color};
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 12px;
+        background-color: white;
+    ">
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">
+            {title}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+        <div style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">
+            {primary}
+        </div>
+    """
+
+    if secondary:
+        html_block += f"""
+        <div style="font-size: 1rem; color: #555;">
+            {secondary}
+        </div>
+        """
+
+    html_block += "</div>"
+
+    st.markdown(html_block, unsafe_allow_html=True)
 
     if card.get("details_rows") is not None:
         with st.expander("Show details"):
