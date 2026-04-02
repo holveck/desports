@@ -29,7 +29,7 @@ st.write(
 
 
 # ---------------------------------
-# Data loading (SAFE HTML NORMALIZATION)
+# Data loading
 # ---------------------------------
 
 @st.cache_data
@@ -46,9 +46,7 @@ def load_data():
         engine="python",
     )
 
-    # ✅ SAFELY normalize all object columns
-    # - unescape HTML entities only for strings
-    # - preserve NaNs and non-string values
+    # Normalize entity-encoded text once at ingestion
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
@@ -63,19 +61,28 @@ def load_data():
 @st.cache_data
 def load_school_styles():
     df = pd.read_csv("data/schools.csv")
-    styles = {}
-
-    for _, row in df.iterrows():
-        styles[row["school_id"]] = {
+    return {
+        row["school_id"]: {
             "primary_color": row.get("primary_color"),
             "secondary_color": row.get("secondary_color"),
         }
+        for _, row in df.iterrows()
+    }
 
-    return styles
+
+# ✅ STEP 1: canonical school name → school_id lookup
+@st.cache_data
+def load_school_name_lookup():
+    df = pd.read_csv("data/schools.csv")
+    return {
+        row["canonical_name"].strip(): row["school_id"]
+        for _, row in df.iterrows()
+    }
 
 
 team_df, rec_df = load_data()
 school_styles = load_school_styles()
+school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
@@ -107,8 +114,7 @@ query = normalize_query(query)
 # ---------------------------------
 
 if needs_clarification(query):
-    prompts = get_clarifying_prompts(query)
-    for prompt in prompts:
+    for prompt in get_clarifying_prompts(query):
         st.info(prompt)
     st.stop()
 
@@ -121,13 +127,15 @@ result, explanation = execute_query(query, team_df, rec_df)
 
 
 # ---------------------------------
-# Render answer card (ONLY answer output)
+# Render answer card
 # ---------------------------------
 
+# ✅ STEP 2: pass school_name_lookup into result_to_card
 card = result_to_card(
     result=result,
     explanation=explanation,
     school_styles=school_styles,
+    school_name_lookup=school_name_lookup,
 )
 
 if card:
@@ -137,7 +145,7 @@ else:
 
 
 # ---------------------------------
-# Explanation (plain text only)
+# Explanation (plain text)
 # ---------------------------------
 
 with st.expander("How this answer was found"):
