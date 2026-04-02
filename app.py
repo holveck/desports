@@ -74,6 +74,8 @@ if question:
     if query is None:
         query = parse_with_llm(question)
 
+    query = normalize_query(query)
+
     # 3. Check whether clarification is required
     if needs_clarification(query):
         st.warning("I need a bit more information to answer that.")
