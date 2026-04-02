@@ -43,7 +43,7 @@ def clean_text(value):
 # Result → Card mapper
 # --------------------------------------------------
 
-def result_to_card(result, explanation, school_styles):
+def result_to_card(result, explanation, school_styles, school_name_lookup):
     """
     Convert executor output into a generic card descriptor.
 
