@@ -139,4 +139,5 @@ def parse_rule_based(question):
     if len(valid_classes) > 1 and classification is None:
         query["needs_clarification"].append("classification")
 
+    query["original_text"] = question
     return query
