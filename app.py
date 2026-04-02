@@ -44,11 +44,15 @@ def load_data():
         engine="python"
     )
 
-    # Normalize champion strings to avoid hidden whitespace issues
-    team_df["champion"] = (
-        team_df["champion"]
-        .astype(str)
-        .str.strip()
+   
+    # ✅ HARD DATA NORMALIZATION
+    # Unescape any previously embedded HTML entities
+    for col in team_df.select_dtypes(include="object").columns:
+        team_df[col] = (
+            team_df[col]
+            .astype(str)
+            .map(html.unescape)
+            .str.strip()
     )
 
     return team_df, rec_df
