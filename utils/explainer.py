@@ -1,5 +1,10 @@
+import streamlit as st
+
+
 def render_explanation(steps):
-    lines = ["How this answer was found:"]
+    if not steps:
+        st.write("No explanation available.")
+        return
+
     for step in steps:
-        lines.append(f"- {step}")
-    return "\n".join(lines)
+        st.write(step)
