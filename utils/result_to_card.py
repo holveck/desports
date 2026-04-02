@@ -89,7 +89,7 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             details_rows=result,
             school_styles=school_styles,
         )
-
+print(repr
     # --------------------------------------------------
     # Case 2: Ranking result (e.g. "most titles")
     # --------------------------------------------------
