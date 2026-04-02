@@ -42,8 +42,12 @@ def normalize_query(query):
         gender = filters.get("gender")
         policy = sport_cfg.get("gender_policy")
 
+    # Treat "overall" as unspecified for single-gender sports
+        if gender == "overall" and policy in {"girls_only", "boys_only"}:
+            gender = None
+
         if gender:
-            pass  # user explicitly specified gender
+            pass
         elif policy == "girls_only":
             filters["gender"] = "girls"
         elif policy == "boys_only":
@@ -51,8 +55,6 @@ def normalize_query(query):
         elif policy == "mixed":
             filters["gender"] = "overall"
         else:
-            # gendered sport, but user didn’t specify
-            # executor will require grouping per gender later if needed
             filters["gender"] = None
 
     query["filters"] = filters
