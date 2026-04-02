@@ -5,6 +5,8 @@ from utils.rule_parser import parse_rule_based
 from utils.llm_parser import parse_with_llm
 from utils.query_executor import execute_query
 from utils.query_normalizer import normalize_query
+from utils.result_to_card import result_to_card
+from utils.card_renderer import render_card
 from utils.clarifier import needs_clarification, get_clarifying_prompts
 from utils.explainer import render_explanation
 
@@ -26,7 +28,7 @@ st.write(
 
 
 # ---------------------------------
-# Load data
+# Data loading
 # ---------------------------------
 
 @st.cache_data
@@ -36,14 +38,13 @@ def load_data():
         encoding="latin-1",
         engine="python"
     )
-
     rec_df = pd.read_csv(
         "data/recognitions.csv",
         encoding="latin-1",
         engine="python"
     )
 
-    # Normalize champion names to avoid hidden whitespace / Unicode issues
+    # Normalize champion strings to avoid hidden whitespace issues
     team_df["champion"] = (
         team_df["champion"]
         .astype(str)
@@ -52,61 +53,87 @@ def load_data():
 
     return team_df, rec_df
 
+
+@st.cache_data
+def load_school_styles():
+    df = pd.read_csv("data/schools.csv")
+    styles = {}
+
+    for _, row in df.iterrows():
+        styles[row["school_id"]] = {
+            "primary_color": row.get("primary_color"),
+            "secondary_color": row.get("secondary_color"),
+        }
+
+    return styles
+
+
 team_df, rec_df = load_data()
+school_styles = load_school_styles()
+
+
 # ---------------------------------
 # Question input
 # ---------------------------------
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g., Who won the girls lacrosse state championship in 2023?"
+    placeholder="e.g. Who won the 2022 Division II field hockey state championship?"
 )
 
+if not question:
+    st.stop()
+
 
 # ---------------------------------
-# Main app logic
+# Parse + normalize query
 # ---------------------------------
 
-if question:
-    # 1. Parse using rule-based parser first
-    query = parse_rule_based(question)
+query = parse_rule_based(question)
 
-    # 2. Fall back to LLM parser if rule-based fails
-    if query is None:
-        query = parse_with_llm(question)
+if query is None:
+    query = parse_with_llm(question)
 
-    query = normalize_query(query)
+query = normalize_query(query)
 
-    # 3. Check whether clarification is required
-    if needs_clarification(query):
-        st.warning("I need a bit more information to answer that.")
 
-        for prompt in get_clarifying_prompts(query):
-            st.write(f"- {prompt}")
+# ---------------------------------
+# Clarification handling
+# ---------------------------------
 
-        # IMPORTANT: stop execution until user clarifies
-        st.stop()
+if needs_clarification(query):
+    prompts = get_clarifying_prompts(query)
+    for prompt in prompts:
+        st.info(prompt)
+    st.stop()
 
-    # 4. Execute the query only when it is complete
-    result, explanation = execute_query(query, team_df, rec_df)
 
-    # ---------------------------------
-    # Render the answer
-    # ---------------------------------
+# ---------------------------------
+# Execute query
+# ---------------------------------
 
-    st.subheader("Answer")
+result, explanation = execute_query(query, team_df, rec_df)
 
-    if isinstance(result, pd.DataFrame):
-        if result.empty:
-            st.info("I don’t see a matching record for that question in the dataset.")
-        else:
-            st.dataframe(result, use_container_width=True)
-    else:
-        st.write(result)
 
-    # ---------------------------------
-    # Render explanation
-    # ---------------------------------
+# ---------------------------------
+# Render answer card
+# ---------------------------------
 
-    if explanation:
-        st.markdown(render_explanation(explanation))
+card = result_to_card(
+    result=result,
+    explanation=explanation,
+    school_styles=school_styles,
+)
+
+if card:
+    render_card(card)
+else:
+    st.warning("I don’t see a matching record for that question.")
+
+
+# ---------------------------------
+# Optional explanation block
+# ---------------------------------
+
+with st.expander("How this answer was found"):
+    render_explanation(explanation)
