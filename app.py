@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import html
 
 from utils.rule_parser import parse_rule_based
 from utils.llm_parser import parse_with_llm
@@ -17,7 +18,7 @@ from utils.explainer import render_explanation
 
 st.set_page_config(
     page_title="Delaware HS Championship Explorer",
-    layout="wide"
+    layout="wide",
 )
 
 st.title("🏆 Delaware High School Championship Explorer")
@@ -28,7 +29,7 @@ st.write(
 
 
 # ---------------------------------
-# Data loading
+# Data loading (CRITICAL FIX)
 # ---------------------------------
 
 @st.cache_data
@@ -36,24 +37,23 @@ def load_data():
     team_df = pd.read_csv(
         "data/results_team.csv",
         encoding="latin-1",
-        engine="python"
+        engine="python",
     )
     rec_df = pd.read_csv(
         "data/recognitions.csv",
         encoding="latin-1",
-        engine="python"
+        engine="python",
     )
 
-   
-    # ✅ HARD DATA NORMALIZATION
-    # Unescape any previously embedded HTML entities
+    # ✅ HARD NORMALIZATION STEP
+    # Undo any historical HTML entity encoding in text fields
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
             .astype(str)
-            .map(html.unescape)
+            .map(html.unescape)   # &lt;div&gt; → <div>
             .str.strip()
-    )
+        )
 
     return team_df, rec_df
 
@@ -82,7 +82,7 @@ school_styles = load_school_styles()
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who won the 2022 Division II field hockey state championship?"
+    placeholder="e.g. Who won the 2022 Division II field hockey state championship?",
 )
 
 if not question:
@@ -94,7 +94,6 @@ if not question:
 # ---------------------------------
 
 query = parse_rule_based(question)
-
 if query is None:
     query = parse_with_llm(question)
 
@@ -120,7 +119,7 @@ result, explanation = execute_query(query, team_df, rec_df)
 
 
 # ---------------------------------
-# Render answer card
+# Render answer card (SOLE ANSWER OUTPUT)
 # ---------------------------------
 
 card = result_to_card(
@@ -136,7 +135,7 @@ else:
 
 
 # ---------------------------------
-# Optional explanation block
+# Explanation (TEXT ONLY)
 # ---------------------------------
 
 with st.expander("How this answer was found"):
