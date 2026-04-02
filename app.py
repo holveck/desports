@@ -4,6 +4,7 @@ import pandas as pd
 from utils.rule_parser import parse_rule_based
 from utils.llm_parser import parse_with_llm
 from utils.query_executor import execute_query
+from utils.query_normalizer import normalize_query
 from utils.clarifier import needs_clarification, get_clarifying_prompts
 from utils.explainer import render_explanation
 
