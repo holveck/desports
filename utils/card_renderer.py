@@ -1,13 +1,8 @@
 import streamlit as st
-import html
 
 
 def render_card(card):
     border_color = card.get("accent_color") or "#DDDDDD"
-
-    title = html.escape(card["title"])
-    primary = html.escape(card["primary_value"])
-    secondary = html.escape(card["secondary_value"]) if card.get("secondary_value") else None
 
     html_block = f"""
     <div style="
@@ -18,18 +13,18 @@ def render_card(card):
         background-color: white;
     ">
         <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">
-            {title}
+            {card["title"]}
         </div>
 
         <div style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">
-            {primary}
+            {card["primary_value"]}
         </div>
     """
 
-    if secondary:
+    if card.get("secondary_value"):
         html_block += f"""
         <div style="font-size: 1rem; color: #555;">
-            {secondary}
+            {card["secondary_value"]}
         </div>
         """
 
