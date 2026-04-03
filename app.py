@@ -159,11 +159,16 @@ if st.session_state.combine_classifications:
 # Clarification handling (non-classification)
 # ---------------------------------
 
-# Clarification handling (non-classification only)
-if needs_clarification(query) and not is_classification_ambiguous(query, team_df):
+# Clarification handling (only when user has NOT made a classification choice)
+if (
+    needs_clarification(query)
+    and not is_classification_ambiguous(query, team_df)
+    and st.session_state.selected_classification is None
+):
     for prompt in get_clarifying_prompts(query):
         st.info(prompt)
     st.stop()
+
 
 
 # ---------------------------------
