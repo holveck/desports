@@ -177,10 +177,12 @@ if st.session_state.combine_classifications:
 # Clarification handling (non-classification)
 # ---------------------------------
 
+# Clarification handling (classification is handled exclusively by chips)
 if (
     needs_clarification(query)
     and not should_show_classification_chips(query, team_df)
     and st.session_state.selected_classification is None
+    and not st.session_state.combine_classifications
 ):
     for prompt in get_clarifying_prompts(query):
         st.info(prompt)
