@@ -1,7 +1,6 @@
 import pandas as pd
 import html
 import re
-
 from utils.card_descriptor import build_card_descriptor
 
 
@@ -11,8 +10,6 @@ def normalize_school_name(name):
         .replace("\u00a0", " ")
         .lower()
         .strip()
-        .replace("'", "'")
-        .replace("-", "-")
     )
 
 
@@ -33,29 +30,25 @@ def clean_text(value):
 
 def result_to_card(result, explanation, school_styles, school_name_lookup):
 
+    # --- Champion lookup ---
     if isinstance(result, pd.DataFrame) and len(result) == 1 and "year" in result.columns:
         row = result.iloc[0]
-
         champ_name = clean_text(row["champion"])
-        school_id = school_name_lookup.get(
-            normalize_school_name(champ_name)
-        )
+
+        school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
         score = None
-        if (
-            pd.notna(row.get("champion_score")) and
-            pd.notna(row.get("runner_up_score"))
-        ):
-            score = str(row["champion_score"]) + "-" + str(row["runner_up_score"])
+        if pd.notna(row.get("champion_score")) and pd.notna(row.get("runner_up_score")):
+            score = f"{row['champion_score']}-{row['runner_up_score']}"
             if pd.notna(row.get("score_note")):
-                score = score + " (" + str(row["score_note"]) + ")"
+                score = score + " (" + row["score_note"] + ")"
 
         secondary = None
         if score and pd.notna(row.get("runner_up")):
-            secondary = "Defeated " + str(row["runner_up"]) + " " + score
+            secondary = "Defeated " + row["runner_up"] + " " + score
 
         return build_card_descriptor(
-            title=str(row["year"]) + " " + str(row["classification"]) + " " + str(row["sport"]).title() + " State Champion",
+            title=f"{row['year']} {row['classification']} {row['sport'].title()} State Champion",
             primary_value=champ_name,
             secondary_value=clean_text(secondary),
             school_id=school_id,
@@ -63,13 +56,11 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             school_styles=school_styles,
         )
 
+    # --- Ranking ---
     if isinstance(result, pd.DataFrame) and "titles" in result.columns and len(result) >= 1:
         row = result.iloc[0]
-
         champ_name = clean_text(row["champion"])
-        school_id = school_name_lookup.get(
-            normalize_school_name(champ_name)
-        )
+        school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
         return build_card_descriptor(
             title="Most state championships",
@@ -80,6 +71,7 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             school_styles=school_styles,
         )
 
+    # --- Aggregation ---
     if isinstance(result, int):
         return build_card_descriptor(
             title="Total state championships",
