@@ -29,7 +29,7 @@ st.write(
 
 
 # ---------------------------------
-# SESSION STATE INITIALIZATION
+# SESSION STATE
 # ---------------------------------
 
 if "selected_classification" not in st.session_state:
@@ -40,7 +40,7 @@ if "combine_classifications" not in st.session_state:
 
 
 # ---------------------------------
-# Data loading
+# DATA
 # ---------------------------------
 
 @st.cache_data
@@ -86,7 +86,7 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# CLASSIFICATION CHIP HELPERS
+# CHIP HELPERS
 # ---------------------------------
 
 def get_relevant_classification_ranges(query, df):
@@ -94,7 +94,7 @@ def get_relevant_classification_ranges(query, df):
     year = query["filters"].get("year")
 
     subset = df[df["sport"] == sport]
-    if year:
+    if year is not None:
         subset = subset[subset["year"] == year]
 
     ranges = {}
@@ -105,23 +105,16 @@ def get_relevant_classification_ranges(query, df):
 
 
 def should_show_classification_chips(query, df):
-    """
-    Chips appear only when:
-    - user did NOT explicitly specify a classification in the text
-    - sport exists
-    - multiple classifications exist in the relevant year(s)
-    """
     if query.get("classification_from_query"):
         return False
 
     sport = query["filters"].get("sport")
-    year = query["filters"].get("year")
-
     if not sport:
         return False
 
     subset = df[df["sport"] == sport]
-    if year:
+    year = query["filters"].get("year")
+    if year is not None:
         subset = subset[subset["year"] == year]
 
     return subset["classification"].nunique() > 1
@@ -144,12 +137,12 @@ def is_selected_combined():
 
 
 # ---------------------------------
-# Question input
+# INPUT
 # ---------------------------------
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who won the 2022 Division I field hockey state title?",
+    placeholder="e.g. Who won the 2022 field hockey state title?",
 )
 
 if not question:
@@ -157,7 +150,7 @@ if not question:
 
 
 # ---------------------------------
-# Parse + normalize query
+# PARSE + NORMALIZE
 # ---------------------------------
 
 query = parse_rule_based(question)
@@ -165,14 +158,11 @@ if query is None:
     query = parse_with_llm(question)
 
 query = normalize_query(query)
-
-# Track whether classification was specified in the original text
 query["classification_from_query"] = "classification" in query.get("filters", {})
 
 
 # ---------------------------------
-# PATCH #1:
-# Default ranking queries to ALL DIVISIONS (combined totals)
+# RANKING DEFAULT: COMBINED
 # ---------------------------------
 
 if query.get("intent") == "ranking" and not query["classification_from_query"]:
@@ -180,7 +170,7 @@ if query.get("intent") == "ranking" and not query["classification_from_query"]:
 
 
 # ---------------------------------
-# Apply session-state classification override
+# APPLY SESSION STATE
 # ---------------------------------
 
 if st.session_state.selected_classification:
@@ -191,8 +181,7 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# PATCH #2:
-# Clarification handling (NON-classification ONLY)
+# CLARIFIER (NON‑CLASSIFICATION ONLY)
 # ---------------------------------
 
 if (
@@ -201,7 +190,6 @@ if (
     and not should_show_classification_chips(query, team_df)
     and st.session_state.selected_classification is None
     and not st.session_state.combine_classifications
-    and query["filters"].get("year") is None
 ):
     for prompt in get_clarifying_prompts(query):
         st.info(prompt)
@@ -209,7 +197,7 @@ if (
 
 
 # ---------------------------------
-# CLASSIFICATION CHIPS (persistent, year-aware, active border)
+# CHIPS
 # ---------------------------------
 
 if should_show_classification_chips(query, team_df):
@@ -243,7 +231,6 @@ if should_show_classification_chips(query, team_df):
         if is_selected(cls):
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Combined totals chip
     combined_label = "All Divisions"
     combined_help = f"Includes all championships from {sport_start} to {sport_end}."
 
@@ -263,14 +250,14 @@ if should_show_classification_chips(query, team_df):
 
 
 # ---------------------------------
-# Execute query
+# EXECUTE
 # ---------------------------------
 
 result, explanation = execute_query(query, team_df, rec_df)
 
 
 # ---------------------------------
-# Render answer card
+# RENDER
 # ---------------------------------
 
 card = result_to_card(
@@ -288,7 +275,7 @@ else:
 
 
 # ---------------------------------
-# Explanation
+# EXPLANATION
 # ---------------------------------
 
 with st.expander("How this answer was found"):
