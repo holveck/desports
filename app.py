@@ -156,12 +156,12 @@ if is_classification_ambiguous(query, team_df):
     for i, cls in enumerate(classifications):
         if cols[i].button(cls):
             query["filters"]["classification"] = cls
-            st.experimental_rerun()
+            st.rerun()
 
     if cols[-1].button("All Divisions (Combined)"):
         query["filters"].pop("classification", None)
         query["filters"]["combine_classifications"] = True
-        st.experimental_rerun()
+        st.rerun()
 
 
 # ---------------------------------
