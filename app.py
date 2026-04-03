@@ -143,6 +143,7 @@ result, explanation = execute_query(query, team_df, rec_df)
 card = result_to_card(
     result=result,
     explanation=explanation,
+    query=query,
     school_styles=school_styles,
     school_name_lookup=school_name_lookup,
 )
