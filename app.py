@@ -104,12 +104,17 @@ def get_relevant_classification_ranges(query, df):
 
 
 def should_show_classification_chips(query, df):
-    filters = query.get("filters", {})
-    sport = filters.get("sport")
-    year = filters.get("year")
-
+    """
+    Chips are shown ONLY if:
+    - The user did NOT explicitly specify a classification in the query text
+    - The sport exists
+    - More than one classification exists for the sport in the relevant year(s)
+    """
     if query.get("classification_from_query"):
         return False
+
+    sport = query["filters"].get("sport")
+    year = query["filters"].get("year")
 
     if not sport:
         return False
@@ -126,14 +131,14 @@ def get_sport_year_span(sport, df):
     return int(subset["year"].min()), int(subset["year"].max())
 
 
-def selected(cls):
+def is_selected(cls):
     return (
         st.session_state.selected_classification == cls
         and not st.session_state.combine_classifications
     )
 
 
-def selected_combined():
+def is_selected_combined():
     return st.session_state.combine_classifications is True
 
 
@@ -159,11 +164,13 @@ if query is None:
     query = parse_with_llm(question)
 
 query = normalize_query(query)
+
+# Track whether classification came from the user's text
 query["classification_from_query"] = "classification" in query.get("filters", {})
 
 
 # ---------------------------------
-# Apply session-state choice
+# Apply session-state classification choice
 # ---------------------------------
 
 if st.session_state.selected_classification:
@@ -174,12 +181,12 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# Clarification handling (non-classification)
+# Clarification handling (NON-classification only)
 # ---------------------------------
 
-# Clarification handling (classification is handled exclusively by chips)
 if (
-    needs_clarification(query)
+    query.get("intent") != "ranking"
+    and needs_clarification(query)
     and not should_show_classification_chips(query, team_df)
     and st.session_state.selected_classification is None
     and not st.session_state.combine_classifications
@@ -190,7 +197,7 @@ if (
 
 
 # ---------------------------------
-# Classification chips (with active border)
+# Classification chips (persistent, year-aware, with active border)
 # ---------------------------------
 
 if should_show_classification_chips(query, team_df):
@@ -203,37 +210,43 @@ if should_show_classification_chips(query, team_df):
     sport_start, sport_end = get_sport_year_span(sport, team_df)
 
     for cls, (start, end) in sorted(cls_ranges.items()):
-        label = f"{cls} ({start}–{end})"
-        help_text = None
-
         if cls.lower() == "overall":
             label = f"Overall ({start}–{end})"
             help_text = "Schools competed for one championship."
+        else:
+            label = f"{cls} ({start}–{end})"
+            help_text = None
 
-        if selected(cls):
-            st.markdown("<div style='border:2px solid #000;padding:6px;border-radius:6px'>", unsafe_allow_html=True)
+        if is_selected(cls):
+            st.markdown(
+                "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+                unsafe_allow_html=True
+            )
 
         if st.button(label, help=help_text):
             st.session_state.selected_classification = cls
             st.session_state.combine_classifications = False
             st.rerun()
 
-        if selected(cls):
+        if is_selected(cls):
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Combined chip
+    # Combined view chip
     combined_label = "All Divisions"
     combined_help = f"Includes all championships from {sport_start} to {sport_end}."
 
-    if selected_combined():
-        st.markdown("<div style='border:2px solid #000;padding:6px;border-radius:6px'>", unsafe_allow_html=True)
+    if is_selected_combined():
+        st.markdown(
+            "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+            unsafe_allow_html=True
+        )
 
     if st.button(combined_label, help=combined_help):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
 
-    if selected_combined():
+    if is_selected_combined():
         st.markdown("</div>", unsafe_allow_html=True)
 
 
