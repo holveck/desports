@@ -29,9 +29,11 @@ def clean_text(value):
     return value.strip()
 
 
-def result_to_card(result, explanation, school_styles, school_name_lookup):
+def result_to_card(result, explanation, query, school_styles, school_name_lookup):
 
-    # --- Champion recall ---
+    # --------------------------------------------------
+    # Champion recall (single row result)
+    # --------------------------------------------------
     if isinstance(result, pd.DataFrame) and len(result) == 1 and "year" in result.columns:
         row = result.iloc[0]
 
@@ -66,7 +68,9 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             school_styles=school_styles,
         )
 
-    # --- Ranking ---
+    # --------------------------------------------------
+    # Ranking result (aggregation)
+    # --------------------------------------------------
     if isinstance(result, pd.DataFrame) and "titles" in result.columns and len(result) >= 1:
         row = result.iloc[0]
 
@@ -75,7 +79,14 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             normalize_school_name(champ_name)
         )
 
-        title = "Most " + row["sport"].title() + " State Championships"
+        filters = query.get("filters", {})
+        sport = filters.get("sport", "")
+        gender = filters.get("gender", "")
+
+        if gender:
+            title = "Most " + gender.title() + " " + sport.title() + " State Championships"
+        else:
+            title = "Most " + sport.title() + " State Championships"
 
         return build_card_descriptor(
             title=title,
@@ -86,7 +97,9 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             school_styles=school_styles,
         )
 
-    # --- Aggregation ---
+    # --------------------------------------------------
+    # Numeric aggregation
+    # --------------------------------------------------
     if isinstance(result, int):
         return build_card_descriptor(
             title="Total state championships",
