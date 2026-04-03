@@ -56,7 +56,6 @@ def load_data():
         engine="python",
     )
 
-    # Normalize any entity-encoded strings once at ingestion
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
@@ -95,29 +94,34 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Helper functions for classification ambiguity
+# Helper functions (classification UX)
 # ---------------------------------
 
-def is_classification_ambiguous(query, df):
-    filters = query.get("filters", {})
-    sport = filters.get("sport")
-    classification = filters.get("classification")
+def get_relevant_classification_ranges(query, df):
+    """Return classification -> (min_year, max_year) only for years relevant to the query."""
+    sport = query["filters"].get("sport")
+    year = query["filters"].get("year")
 
-    # User explicitly specified a classification
-    if classification:
-        return False
+    sport_df = df[df["sport"] == sport]
 
-    if not sport:
-        return False
+    # If the user asked about a specific year, only include classifications active in that year
+    if year:
+        sport_df = sport_df[sport_df["year"] == year]
 
+    ranges = {}
+    for cls, grp in sport_df.groupby("classification"):
+        ranges[cls] = (int(grp["year"].min()), int(grp["year"].max()))
+
+    return ranges
+
+
+def has_multiple_relevant_classifications(query, df):
+    return len(get_relevant_classification_ranges(query, df)) > 1
+
+
+def get_sport_year_span(sport, df):
     subset = df[df["sport"] == sport]
-    return subset["classification"].nunique() > 1
-
-
-def get_classification_options(query, df):
-    sport = query.get("filters", {}).get("sport")
-    subset = df[df["sport"] == sport]
-    return sorted(subset["classification"].dropna().unique())
+    return int(subset["year"].min()), int(subset["year"].max())
 
 
 # ---------------------------------
@@ -126,7 +130,7 @@ def get_classification_options(query, df):
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who has won the most girls lacrosse state titles?",
+    placeholder="e.g. Who won the 2022 field hockey state title?",
 )
 
 if not question:
@@ -156,13 +160,12 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# Clarification handling (non-classification)
+# Clarification handling (non-classification only)
 # ---------------------------------
 
-# Clarification handling (only when user has NOT made a classification choice)
 if (
     needs_clarification(query)
-    and not is_classification_ambiguous(query, team_df)
+    and not has_multiple_relevant_classifications(query, team_df)
     and st.session_state.selected_classification is None
 ):
     for prompt in get_clarifying_prompts(query):
@@ -170,25 +173,40 @@ if (
     st.stop()
 
 
-
 # ---------------------------------
-# Classification choice chips (UX layer)
+# Classification choice chips (year-aware)
 # ---------------------------------
 
-if is_classification_ambiguous(query, team_df):
-    st.markdown("**This sport has multiple championship classifications.**")
-    st.markdown("Choose how you would like to view the results:")
+if has_multiple_relevant_classifications(query, team_df):
+    sport = query["filters"].get("sport")
+    year = query["filters"].get("year")
 
-    classifications = get_classification_options(query, team_df)
-    cols = st.columns(len(classifications) + 1)
+    st.markdown("**This sport has multiple championship structures.**")
+    st.markdown("Choose how you’d like to view the results:")
 
-    for i, cls in enumerate(classifications):
-        if cols[i].button(cls):
+    cls_ranges = get_relevant_classification_ranges(query, team_df)
+    sport_start, sport_end = get_sport_year_span(sport, team_df)
+
+    cols = st.columns(len(cls_ranges) + 1)
+
+    i = 0
+    for cls, (start, end) in sorted(cls_ranges.items()):
+        if cls.lower() == "overall":
+            label = f"Overall Champions ({start}–{end})"
+            help_text = "Schools competed for one championship."
+        else:
+            label = f"{cls} ({start}–{end})"
+            help_text = None
+
+        if cols[i].button(label, help=help_text):
             st.session_state.selected_classification = cls
             st.session_state.combine_classifications = False
             st.rerun()
 
-    if cols[-1].button("All Divisions (Combined)"):
+        i += 1
+
+    combined_label = f"All Divisions (Combined, {sport_start}–{sport_end})"
+    if cols[-1].button(combined_label):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
