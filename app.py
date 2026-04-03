@@ -29,6 +29,17 @@ st.write(
 
 
 # ---------------------------------
+# Session state initialization
+# ---------------------------------
+
+if "selected_classification" not in st.session_state:
+    st.session_state.selected_classification = None
+
+if "combine_classifications" not in st.session_state:
+    st.session_state.combine_classifications = False
+
+
+# ---------------------------------
 # Data loading
 # ---------------------------------
 
@@ -45,7 +56,7 @@ def load_data():
         engine="python",
     )
 
-    # Normalize text once at ingestion
+    # Normalize any entity-encoded strings once at ingestion
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
@@ -84,7 +95,7 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Helper functions for ambiguity handling
+# Helper functions for classification ambiguity
 # ---------------------------------
 
 def is_classification_ambiguous(query, df):
@@ -92,6 +103,7 @@ def is_classification_ambiguous(query, df):
     sport = filters.get("sport")
     classification = filters.get("classification")
 
+    # User explicitly specified a classification
     if classification:
         return False
 
@@ -133,7 +145,18 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Clarification handling (non‑classification)
+# Apply session-state classification choice
+# ---------------------------------
+
+if st.session_state.selected_classification:
+    query["filters"]["classification"] = st.session_state.selected_classification
+
+if st.session_state.combine_classifications:
+    query["filters"].pop("classification", None)
+
+
+# ---------------------------------
+# Clarification handling (non-classification)
 # ---------------------------------
 
 if needs_clarification(query) and not is_classification_ambiguous(query, team_df):
@@ -143,7 +166,7 @@ if needs_clarification(query) and not is_classification_ambiguous(query, team_df
 
 
 # ---------------------------------
-# Classification choice UI (chips)
+# Classification choice chips (UX layer)
 # ---------------------------------
 
 if is_classification_ambiguous(query, team_df):
@@ -155,12 +178,13 @@ if is_classification_ambiguous(query, team_df):
 
     for i, cls in enumerate(classifications):
         if cols[i].button(cls):
-            query["filters"]["classification"] = cls
+            st.session_state.selected_classification = cls
+            st.session_state.combine_classifications = False
             st.rerun()
 
     if cols[-1].button("All Divisions (Combined)"):
-        query["filters"].pop("classification", None)
-        query["filters"]["combine_classifications"] = True
+        st.session_state.selected_classification = None
+        st.session_state.combine_classifications = True
         st.rerun()
 
 
