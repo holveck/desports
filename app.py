@@ -151,7 +151,30 @@ if query.get("intent") == "ranking":
 # ---------------------------------
 # Chips
 # ---------------------------------
+st.subheader("DEBUG: Classification Chip Gate")
 
+st.write("Parsed query filters:", query.get("filters"))
+
+sport = query.get("filters", {}).get("sport")
+year = query.get("filters", {}).get("year")
+
+st.write("sport:", sport)
+st.write("year:", year)
+
+if sport:
+    df_sport = team_df[team_df["sport"] == sport]
+    st.write("Rows for sport:", len(df_sport))
+    st.write("Unique classifications for sport:", df_sport["classification"].unique())
+
+    if year is not None:
+        df_year = df_sport[df_sport["year"] == year]
+        st.write("Rows for sport+year:", len(df_year))
+        st.write("Unique classifications for sport+year:", df_year["classification"].unique())
+
+st.write(
+    "should_show_classification_chips:",
+    should_show_classification_chips(query, team_df),
+)
 if True:
     sport = query["filters"]["sport"]
     cls_ranges = get_classification_ranges(query, team_df)
