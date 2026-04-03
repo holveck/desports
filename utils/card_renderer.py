@@ -7,7 +7,7 @@ def render_card(card):
     html_block = f"""
     <div style="
         display: flex;
-        justify-content: center;
+        justify-content: left;
         margin-bottom: 12px;
     ">
         <div style="
