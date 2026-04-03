@@ -21,7 +21,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("🏆 Delaware High School Championship Explorer")
+st.title("🏆 Delaware HS Championship Explorer")
 st.write(
     "Ask questions about Delaware high school state championships, "
     "such as who won a title in a given year or which school has the most championships."
@@ -39,14 +39,13 @@ def load_data():
         encoding="latin-1",
         engine="python",
     )
-
     rec_df = pd.read_csv(
         "data/recognitions.csv",
         encoding="latin-1",
         engine="python",
     )
 
-    # defensively normalize entity-encoded strings
+    # Normalize text once at ingestion
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
             team_df[col]
@@ -72,20 +71,9 @@ def load_school_styles():
 
 @st.cache_data
 def load_school_name_lookup():
-    """
-    Build canonical_name → school_id mapping,
-    using the SAME normalization as result_to_card.
-    """
     df = pd.read_csv("data/schools.csv")
     return {
-        (
-            str(row["canonical_name"])
-            .replace("\u00a0", " ")
-            .lower()
-            .strip()
-            .replace("’", "'")
-            .replace("–", "-")
-        ): row["school_id"]
+        row["canonical_name"].lower().strip(): row["school_id"]
         for _, row in df.iterrows()
     }
 
@@ -96,12 +84,37 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
+# Helper functions for ambiguity handling
+# ---------------------------------
+
+def is_classification_ambiguous(query, df):
+    filters = query.get("filters", {})
+    sport = filters.get("sport")
+    classification = filters.get("classification")
+
+    if classification:
+        return False
+
+    if not sport:
+        return False
+
+    subset = df[df["sport"] == sport]
+    return subset["classification"].nunique() > 1
+
+
+def get_classification_options(query, df):
+    sport = query.get("filters", {}).get("sport")
+    subset = df[df["sport"] == sport]
+    return sorted(subset["classification"].dropna().unique())
+
+
+# ---------------------------------
 # Question input
 # ---------------------------------
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who won the 2022 Division II field hockey state championship?",
+    placeholder="e.g. Who has won the most girls lacrosse state titles?",
 )
 
 if not question:
@@ -120,13 +133,35 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Clarification handling
+# Clarification handling (non‑classification)
 # ---------------------------------
 
-if needs_clarification(query):
+if needs_clarification(query) and not is_classification_ambiguous(query, team_df):
     for prompt in get_clarifying_prompts(query):
         st.info(prompt)
     st.stop()
+
+
+# ---------------------------------
+# Classification choice UI (chips)
+# ---------------------------------
+
+if is_classification_ambiguous(query, team_df):
+    st.markdown("**This sport has multiple championship classifications.**")
+    st.markdown("Choose how you would like to view the results:")
+
+    classifications = get_classification_options(query, team_df)
+    cols = st.columns(len(classifications) + 1)
+
+    for i, cls in enumerate(classifications):
+        if cols[i].button(cls):
+            query["filters"]["classification"] = cls
+            st.experimental_rerun()
+
+    if cols[-1].button("All Divisions (Combined)"):
+        query["filters"].pop("classification", None)
+        query["filters"]["combine_classifications"] = True
+        st.experimental_rerun()
 
 
 # ---------------------------------
