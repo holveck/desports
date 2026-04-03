@@ -15,7 +15,7 @@ def render_card(card):
             border-radius: 12px;
             padding: 14px 18px;
             background-color: #ffffff;
-            max-width: 680px;
+            max-width: 500px;
             width: 100%;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont,
