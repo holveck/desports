@@ -15,17 +15,13 @@ from utils.explainer import render_explanation
 # Page configuration
 # ---------------------------------
 
-st.set_page_config(
-    page_title="Delaware HS Championship Explorer",
-    layout="wide",
-)
+st.set_page_config(page_title="Delaware HS Championship Explorer", layout="wide")
 
 st.title("🏆 Delaware HS Championship Explorer")
 st.write(
     "Ask questions about Delaware high school state championships, "
     "such as who won a title in a given year or which school has the most championships."
 )
-
 
 # ---------------------------------
 # Session state
@@ -58,11 +54,34 @@ def load_data():
     return team_df, rec_df
 
 
+@st.cache_data
+def load_school_styles():
+    df = pd.read_csv("data/schools.csv")
+    return {
+        row["school_id"]: {
+            "primary_color": row.get("primary_color"),
+            "secondary_color": row.get("secondary_color"),
+        }
+        for _, row in df.iterrows()
+    }
+
+
+@st.cache_data
+def load_school_name_lookup():
+    df = pd.read_csv("data/schools.csv")
+    return {
+        row["canonical_name"].lower().strip(): row["school_id"]
+        for _, row in df.iterrows()
+    }
+
+
 team_df, rec_df = load_data()
+school_styles = load_school_styles()
+school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Helper: should chips appear?
+# Chip helpers
 # ---------------------------------
 
 def should_show_classification_chips(query, df):
@@ -70,7 +89,6 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    # If user explicitly named a classification in the text → no chips
     if "classification" in filters:
         return False
 
@@ -92,15 +110,14 @@ def get_classification_ranges(query, df):
     if year is not None:
         subset = subset[subset["year"] == year]
 
-    ranges = {}
-    for cls, grp in subset.groupby("classification"):
-        ranges[cls] = (grp["year"].min(), grp["year"].max())
-
-    return ranges
+    return {
+        cls: (grp["year"].min(), grp["year"].max())
+        for cls, grp in subset.groupby("classification")
+    }
 
 
 # ---------------------------------
-# Question input
+# Input
 # ---------------------------------
 
 question = st.text_input(
@@ -113,7 +130,7 @@ if not question:
 
 
 # ---------------------------------
-# Parse + normalize
+# Parse
 # ---------------------------------
 
 query = parse_rule_based(question)
@@ -124,7 +141,7 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Default ranking behavior
+# Ranking default = combined
 # ---------------------------------
 
 if query.get("intent") == "ranking":
@@ -132,7 +149,7 @@ if query.get("intent") == "ranking":
 
 
 # ---------------------------------
-# Classification chips UI
+# Chips
 # ---------------------------------
 
 if should_show_classification_chips(query, team_df):
@@ -142,14 +159,11 @@ if should_show_classification_chips(query, team_df):
     st.markdown("**This sport has multiple championship classifications.**")
     st.markdown("Choose how you’d like to view the results:")
 
-    for cls, (start, end) in sorted(cls_ranges.items()):
+    for cls, (start, end) in cls_ranges.items():
         selected = st.session_state.selected_classification == cls
 
         if selected:
-            st.markdown(
-                "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-                unsafe_allow_html=True
-            )
+            st.markdown("<div style='border:2px solid black;padding:6px;border-radius:6px;'>", unsafe_allow_html=True)
 
         if st.button(f"{cls} ({start}–{end})"):
             st.session_state.selected_classification = cls
@@ -159,26 +173,20 @@ if should_show_classification_chips(query, team_df):
         if selected:
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Combined option
-    combined_selected = st.session_state.combine_classifications
-
-    if combined_selected:
-        st.markdown(
-            "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-            unsafe_allow_html=True
-        )
+    if st.session_state.combine_classifications:
+        st.markdown("<div style='border:2px solid black;padding:6px;border-radius:6px;'>", unsafe_allow_html=True)
 
     if st.button("All Divisions (Combined)"):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
 
-    if combined_selected:
+    if st.session_state.combine_classifications:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------
-# Apply classification AFTER UI
+# Apply selection AFTER UI
 # ---------------------------------
 
 if st.session_state.selected_classification:
@@ -189,7 +197,7 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# Execute query
+# Execute
 # ---------------------------------
 
 result, explanation = execute_query(query, team_df, rec_df)
@@ -211,7 +219,6 @@ if card:
     render_card(card)
 else:
     st.warning("I don’t see a matching record for that question.")
-
 
 with st.expander("How this answer was found"):
     render_explanation(explanation)
