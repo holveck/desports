@@ -58,7 +58,8 @@ def render_card(card):
     """
 
     # ✅ Increase height so the iframe does not clip native Streamlit elements below
-    components.html(html_block, height=240)
+    components.html(html_block, height=140)
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
     # ✅ Native Streamlit expander — preserved exactly as you wanted
     if card.get("details_rows") is not None:
