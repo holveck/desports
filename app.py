@@ -15,13 +15,17 @@ from utils.explainer import render_explanation
 # Page configuration
 # ---------------------------------
 
-st.set_page_config(page_title="Delaware HS Championship Explorer", layout="wide")
+st.set_page_config(
+    page_title="Delaware HS Championship Explorer",
+    layout="wide",
+)
 
 st.title("🏆 Delaware HS Championship Explorer")
 st.write(
     "Ask questions about Delaware high school state championships, "
     "such as who won a title in a given year or which school has the most championships."
 )
+
 
 # ---------------------------------
 # Session state
@@ -81,7 +85,7 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Chip helpers
+# Helper: should chips appear?
 # ---------------------------------
 
 def should_show_classification_chips(query, df):
@@ -89,7 +93,8 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    if "classification" in filters:
+    # ✅ FIX: Only suppress chips if the user actually supplied a classification value
+    if filters.get("classification") is not None:
         return False
 
     if not sport:
@@ -110,14 +115,15 @@ def get_classification_ranges(query, df):
     if year is not None:
         subset = subset[subset["year"] == year]
 
-    return {
-        cls: (grp["year"].min(), grp["year"].max())
-        for cls, grp in subset.groupby("classification")
-    }
+    ranges = {}
+    for cls, grp in subset.groupby("classification"):
+        ranges[cls] = (grp["year"].min(), grp["year"].max())
+
+    return ranges
 
 
 # ---------------------------------
-# Input
+# Question input
 # ---------------------------------
 
 question = st.text_input(
@@ -130,7 +136,7 @@ if not question:
 
 
 # ---------------------------------
-# Parse
+# Parse + normalize
 # ---------------------------------
 
 query = parse_rule_based(question)
@@ -141,7 +147,7 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Ranking default = combined
+# Default ranking behavior
 # ---------------------------------
 
 if query.get("intent") == "ranking":
@@ -149,46 +155,26 @@ if query.get("intent") == "ranking":
 
 
 # ---------------------------------
-# Chips
+# Classification chips UI
 # ---------------------------------
-st.subheader("DEBUG: Classification Chip Gate")
 
-st.write("Parsed query filters:", query.get("filters"))
-
-sport = query.get("filters", {}).get("sport")
-year = query.get("filters", {}).get("year")
-
-st.write("sport:", sport)
-st.write("year:", year)
-
-if sport:
-    df_sport = team_df[team_df["sport"] == sport]
-    st.write("Rows for sport:", len(df_sport))
-    st.write("Unique classifications for sport:", df_sport["classification"].unique())
-
-    if year is not None:
-        df_year = df_sport[df_sport["year"] == year]
-        st.write("Rows for sport+year:", len(df_year))
-        st.write("Unique classifications for sport+year:", df_year["classification"].unique())
-
-st.write(
-    "should_show_classification_chips:",
-    should_show_classification_chips(query, team_df),
-)
-if True:
+if should_show_classification_chips(query, team_df):
     sport = query["filters"]["sport"]
     cls_ranges = get_classification_ranges(query, team_df)
 
     st.markdown("**This sport has multiple championship classifications.**")
     st.markdown("Choose how you’d like to view the results:")
 
-    for cls, (start, end) in cls_ranges.items():
+    for cls, (start, end) in sorted(cls_ranges.items()):
         selected = st.session_state.selected_classification == cls
 
         if selected:
-            st.markdown("<div style='border:2px solid black;padding:6px;border-radius:6px;'>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+                unsafe_allow_html=True
+            )
 
-        if st.button(f"{cls} ({start}–{end})"):
+        if st.button(f"{cls} ({start}–{end})", key=f"cls-{cls}"):
             st.session_state.selected_classification = cls
             st.session_state.combine_classifications = False
             st.rerun()
@@ -196,20 +182,26 @@ if True:
         if selected:
             st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.session_state.combine_classifications:
-        st.markdown("<div style='border:2px solid black;padding:6px;border-radius:6px;'>", unsafe_allow_html=True)
+    # Combined option
+    combined_selected = st.session_state.combine_classifications
 
-    if st.button("All Divisions (Combined)"):
+    if combined_selected:
+        st.markdown(
+            "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+            unsafe_allow_html=True
+        )
+
+    if st.button("All Divisions (Combined)", key="cls-combined"):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
 
-    if st.session_state.combine_classifications:
+    if combined_selected:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------
-# Apply selection AFTER UI
+# Apply classification AFTER UI
 # ---------------------------------
 
 if st.session_state.selected_classification:
@@ -220,7 +212,7 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# Execute
+# Execute query
 # ---------------------------------
 
 result, explanation = execute_query(query, team_df, rec_df)
@@ -242,6 +234,7 @@ if card:
     render_card(card)
 else:
     st.warning("I don’t see a matching record for that question.")
+
 
 with st.expander("How this answer was found"):
     render_explanation(explanation)
