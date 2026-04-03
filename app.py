@@ -45,16 +45,8 @@ if "combine_classifications" not in st.session_state:
 
 @st.cache_data
 def load_data():
-    team_df = pd.read_csv(
-        "data/results_team.csv",
-        encoding="latin-1",
-        engine="python",
-    )
-    rec_df = pd.read_csv(
-        "data/recognitions.csv",
-        encoding="latin-1",
-        engine="python",
-    )
+    team_df = pd.read_csv("data/results_team.csv", encoding="latin-1")
+    rec_df = pd.read_csv("data/recognitions.csv", encoding="latin-1")
 
     for col in team_df.select_dtypes(include="object").columns:
         team_df[col] = (
@@ -94,29 +86,40 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Helper functions (classification UX)
+# Classification UX helpers
 # ---------------------------------
 
 def get_relevant_classification_ranges(query, df):
-    """Return classification -> (min_year, max_year) only for years relevant to the query."""
     sport = query["filters"].get("sport")
     year = query["filters"].get("year")
 
-    sport_df = df[df["sport"] == sport]
-
-    # If the user asked about a specific year, only include classifications active in that year
+    subset = df[df["sport"] == sport]
     if year:
-        sport_df = sport_df[sport_df["year"] == year]
+        subset = subset[subset["year"] == year]
 
     ranges = {}
-    for cls, grp in sport_df.groupby("classification"):
+    for cls, grp in subset.groupby("classification"):
         ranges[cls] = (int(grp["year"].min()), int(grp["year"].max()))
-
     return ranges
 
 
-def has_multiple_relevant_classifications(query, df):
-    return len(get_relevant_classification_ranges(query, df)) > 1
+def should_show_classification_chips(query, df):
+    filters = query.get("filters", {})
+    sport = filters.get("sport")
+    year = filters.get("year")
+    classification = filters.get("classification")
+
+    if classification:
+        return False
+
+    if not sport:
+        return False
+
+    subset = df[df["sport"] == sport]
+    if year:
+        subset = subset[subset["year"] == year]
+
+    return subset["classification"].nunique() > 1
 
 
 def get_sport_year_span(sport, df):
@@ -130,7 +133,7 @@ def get_sport_year_span(sport, df):
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who won the 2022 field hockey state title?",
+    placeholder="e.g. Who won the 2022 Division I field hockey state title?",
 )
 
 if not question:
@@ -160,12 +163,12 @@ if st.session_state.combine_classifications:
 
 
 # ---------------------------------
-# Clarification handling (non-classification only)
+# Clarification handling (non-classification)
 # ---------------------------------
 
 if (
     needs_clarification(query)
-    and not has_multiple_relevant_classifications(query, team_df)
+    and not should_show_classification_chips(query, team_df)
     and st.session_state.selected_classification is None
 ):
     for prompt in get_clarifying_prompts(query):
@@ -174,12 +177,11 @@ if (
 
 
 # ---------------------------------
-# Classification choice chips (year-aware)
+# Classification chips (refined UX)
 # ---------------------------------
 
-if has_multiple_relevant_classifications(query, team_df):
+if should_show_classification_chips(query, team_df):
     sport = query["filters"].get("sport")
-    year = query["filters"].get("year")
 
     st.markdown("**This sport has multiple championship structures.**")
     st.markdown("Choose how you’d like to view the results:")
@@ -192,7 +194,7 @@ if has_multiple_relevant_classifications(query, team_df):
     i = 0
     for cls, (start, end) in sorted(cls_ranges.items()):
         if cls.lower() == "overall":
-            label = f"Overall Champions ({start}–{end})"
+            label = f"Overall ({start}–{end})"
             help_text = "Schools competed for one championship."
         else:
             label = f"{cls} ({start}–{end})"
@@ -205,8 +207,9 @@ if has_multiple_relevant_classifications(query, team_df):
 
         i += 1
 
-    combined_label = f"All Divisions (Combined, {sport_start}–{sport_end})"
-    if cols[-1].button(combined_label):
+    combined_label = "All Divisions"
+    combined_help = f"Includes all championships from {sport_start} to {sport_end}."
+    if cols[-1].button(combined_label, help=combined_help):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
