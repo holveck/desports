@@ -86,7 +86,7 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Classification UX helpers
+# Classification chip helpers
 # ---------------------------------
 
 def get_relevant_classification_ranges(query, df):
@@ -107,9 +107,8 @@ def should_show_classification_chips(query, df):
     filters = query.get("filters", {})
     sport = filters.get("sport")
     year = filters.get("year")
-    classification = filters.get("classification")
 
-    if classification:
+    if query.get("classification_from_query"):
         return False
 
     if not sport:
@@ -125,6 +124,17 @@ def should_show_classification_chips(query, df):
 def get_sport_year_span(sport, df):
     subset = df[df["sport"] == sport]
     return int(subset["year"].min()), int(subset["year"].max())
+
+
+def selected(cls):
+    return (
+        st.session_state.selected_classification == cls
+        and not st.session_state.combine_classifications
+    )
+
+
+def selected_combined():
+    return st.session_state.combine_classifications is True
 
 
 # ---------------------------------
@@ -149,10 +159,11 @@ if query is None:
     query = parse_with_llm(question)
 
 query = normalize_query(query)
+query["classification_from_query"] = "classification" in query.get("filters", {})
 
 
 # ---------------------------------
-# Apply session-state classification choice
+# Apply session-state choice
 # ---------------------------------
 
 if st.session_state.selected_classification:
@@ -177,7 +188,7 @@ if (
 
 
 # ---------------------------------
-# Classification chips (refined UX)
+# Classification chips (with active border)
 # ---------------------------------
 
 if should_show_classification_chips(query, team_df):
@@ -189,30 +200,39 @@ if should_show_classification_chips(query, team_df):
     cls_ranges = get_relevant_classification_ranges(query, team_df)
     sport_start, sport_end = get_sport_year_span(sport, team_df)
 
-    cols = st.columns(len(cls_ranges) + 1)
-
-    i = 0
     for cls, (start, end) in sorted(cls_ranges.items()):
+        label = f"{cls} ({start}–{end})"
+        help_text = None
+
         if cls.lower() == "overall":
             label = f"Overall ({start}–{end})"
             help_text = "Schools competed for one championship."
-        else:
-            label = f"{cls} ({start}–{end})"
-            help_text = None
 
-        if cols[i].button(label, help=help_text):
+        if selected(cls):
+            st.markdown("<div style='border:2px solid #000;padding:6px;border-radius:6px'>", unsafe_allow_html=True)
+
+        if st.button(label, help=help_text):
             st.session_state.selected_classification = cls
             st.session_state.combine_classifications = False
             st.rerun()
 
-        i += 1
+        if selected(cls):
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    # Combined chip
     combined_label = "All Divisions"
     combined_help = f"Includes all championships from {sport_start} to {sport_end}."
-    if cols[-1].button(combined_label, help=combined_help):
+
+    if selected_combined():
+        st.markdown("<div style='border:2px solid #000;padding:6px;border-radius:6px'>", unsafe_allow_html=True)
+
+    if st.button(combined_label, help=combined_help):
         st.session_state.selected_classification = None
         st.session_state.combine_classifications = True
         st.rerun()
+
+    if selected_combined():
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------
