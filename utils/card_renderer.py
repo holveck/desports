@@ -1,4 +1,5 @@
 import streamlit.components.v1 as components
+import streamlit as st
 
 
 def render_card(card):
@@ -7,15 +8,15 @@ def render_card(card):
     html_block = f"""
     <div style="
         display: flex;
-        justify-content: left;
-        margin-bottom: 12px;
+        justify-content: center;
+        margin-bottom: 8px;
     ">
         <div style="
             border: 3px solid {border_color};
             border-radius: 12px;
             padding: 14px 18px;
             background-color: #ffffff;
-            max-width: 500px;
+            max-width: 680px;
             width: 100%;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont,
@@ -57,4 +58,10 @@ def render_card(card):
     </div>
     """
 
-    components.html(html_block, height=140)
+    # ✅ Increase height so the iframe does not clip native Streamlit elements below
+    components.html(html_block, height=240)
+
+    # ✅ Native Streamlit expander — preserved exactly as you wanted
+    if card.get("details_rows") is not None:
+        with st.expander("Show details"):
+            st.dataframe(card["details_rows"], use_container_width=True)
