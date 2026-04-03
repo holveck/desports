@@ -63,7 +63,7 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
         school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
         return build_card_descriptor(
-            title="Most state championships",
+            title=f"Most {row.get('gender', '').title()} {row.get('sport', '').title()} State Championships".strip(),
             primary_value=champ_name,
             secondary_value=str(row["titles"]) + " titles",
             school_id=school_id,
