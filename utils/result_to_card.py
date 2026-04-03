@@ -48,7 +48,7 @@ def result_to_card(result, explanation, school_styles, school_name_lookup):
             secondary = "Defeated " + row["runner_up"] + " " + score
 
         return build_card_descriptor(
-            title=f"{row['year']} {row['classification']} {row['sport'].title()} State Champion",
+            title = f"{row['year']} {row['gender'].title()} {row['sport'].title()} State Champion"
             primary_value=champ_name,
             secondary_value=clean_text(secondary),
             school_id=school_id,
