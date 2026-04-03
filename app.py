@@ -152,7 +152,7 @@ if query.get("intent") == "ranking":
 # Chips
 # ---------------------------------
 
-if should_show_classification_chips(query, team_df):
+if True:
     sport = query["filters"]["sport"]
     cls_ranges = get_classification_ranges(query, team_df)
 
