@@ -237,16 +237,37 @@ card = result_to_card(
 )
 
 if card:
+    # ---------------------------------
+    # Render primary result card
+    # ---------------------------------
     render_card(card)
+
+    # ---------------------------------
+    # Show details (underlying data)
+    # ---------------------------------
+
+    if card.get("details_rows") is not None:
+        with st.expander("Show details"):
+
+            # Phase 2: annotated year list for school summary cards
+            if card.get("details_years"):
+                st.markdown("**Years won:**")
+                st.write(", ".join(card["details_years"]))
+                st.markdown("---")
+
+            # Preserve existing details table
+            st.dataframe(
+                card["details_rows"],
+                use_container_width=True
+            )
+
 else:
     st.warning("I don’t see a matching record for that question.")
 
+
 # ---------------------------------
-# Show details (underlying data)
+# Explanation (unchanged)
 # ---------------------------------
 
-if card.get("details_rows") is not None:
-    with st.expander("Show details"):
-        st.dataframe(card["details_rows"], use_container_width=True)
 with st.expander("How this answer was found"):
     render_explanation(explanation)
