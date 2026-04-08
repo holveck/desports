@@ -165,8 +165,8 @@ if should_show_classification_chips(query, team_df):
     year = query["filters"].get("year")
     cls_ranges = get_classification_ranges(query, team_df)
 
-    st.markdown("**This sport has multiple championship classifications.**")
-    st.markdown("Choose how you’d like to view the results:")
+    st.markdown("**This sport has had multiple championship formats over time.**")
+    st.markdown("View results by division:")
 
     show_combined = query.get("intent") == "ranking"
     total_cols = len(cls_ranges) + (1 if show_combined else 0)
