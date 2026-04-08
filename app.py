@@ -85,7 +85,7 @@ school_name_lookup = load_school_name_lookup()
 
 
 # ---------------------------------
-# Helper: should chips appear?
+# Chip helpers
 # ---------------------------------
 
 def should_show_classification_chips(query, df):
@@ -93,7 +93,7 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    # ✅ FIX: Only suppress chips if the user actually supplied a classification value
+    # User explicitly specified a classification → no chips
     if filters.get("classification") is not None:
         return False
 
@@ -115,11 +115,10 @@ def get_classification_ranges(query, df):
     if year is not None:
         subset = subset[subset["year"] == year]
 
-    ranges = {}
-    for cls, grp in subset.groupby("classification"):
-        ranges[cls] = (grp["year"].min(), grp["year"].max())
-
-    return ranges
+    return {
+        cls: (grp["year"].min(), grp["year"].max())
+        for cls, grp in subset.groupby("classification")
+    }
 
 
 # ---------------------------------
@@ -147,15 +146,19 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Default ranking behavior
+# Ranking default (only once)
 # ---------------------------------
 
-if query.get("intent") == "ranking":
+if (
+    query.get("intent") == "ranking"
+    and st.session_state.selected_classification is None
+    and not st.session_state.combine_classifications
+):
     st.session_state.combine_classifications = True
 
 
 # ---------------------------------
-# Classification chips UI
+# Classification chips
 # ---------------------------------
 
 if should_show_classification_chips(query, team_df):
@@ -165,39 +168,53 @@ if should_show_classification_chips(query, team_df):
     st.markdown("**This sport has multiple championship classifications.**")
     st.markdown("Choose how you’d like to view the results:")
 
+    # Number of chips (exclude combined for recall queries)
+    show_combined = query.get("intent") == "ranking"
+    total_cols = len(cls_ranges) + (1 if show_combined else 0)
+    cols = st.columns(total_cols)
+
+    i = 0
     for cls, (start, end) in sorted(cls_ranges.items()):
-        selected = st.session_state.selected_classification == cls
-
-        if selected:
-            st.markdown(
-                "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-                unsafe_allow_html=True
-            )
-
-        if st.button(f"{cls} ({start}–{end})", key=f"cls-{cls}"):
-            st.session_state.selected_classification = cls
-            st.session_state.combine_classifications = False
-            st.rerun()
-
-        if selected:
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # Combined option
-    combined_selected = st.session_state.combine_classifications
-
-    if combined_selected:
-        st.markdown(
-            "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-            unsafe_allow_html=True
+        selected = (
+            st.session_state.selected_classification == cls
+            and not st.session_state.combine_classifications
         )
 
-    if st.button("All Divisions (Combined)", key="cls-combined"):
-        st.session_state.selected_classification = None
-        st.session_state.combine_classifications = True
-        st.rerun()
+        with cols[i]:
+            if selected:
+                st.markdown(
+                    "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+                    unsafe_allow_html=True
+                )
 
-    if combined_selected:
-        st.markdown("</div>", unsafe_allow_html=True)
+            if st.button(f"{cls} ({start}–{end})", key=f"cls-{cls}"):
+                st.session_state.selected_classification = cls
+                st.session_state.combine_classifications = False
+                st.rerun()
+
+            if selected:
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        i += 1
+
+    # Combined totals chip (ranking only)
+    if show_combined:
+        combined_selected = st.session_state.combine_classifications
+
+        with cols[i]:
+            if combined_selected:
+                st.markdown(
+                    "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
+                    unsafe_allow_html=True
+                )
+
+            if st.button("All Divisions (Combined)", key="cls-combined"):
+                st.session_state.selected_classification = None
+                st.session_state.combine_classifications = True
+                st.rerun()
+
+            if combined_selected:
+                st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------
@@ -219,7 +236,7 @@ result, explanation = execute_query(query, team_df, rec_df)
 
 
 # ---------------------------------
-# Render
+# Render result
 # ---------------------------------
 
 card = result_to_card(
