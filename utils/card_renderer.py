@@ -31,7 +31,7 @@ def render_recall_card(card):
     raw_html(
         f"""
         <div style="
-            max-width: 440px;
+            max-width: 400px;
             padding: 20px;
             margin-bottom: 6px;
             background: #ffffff;
