@@ -176,17 +176,14 @@ if should_show_classification_chips(query, team_df):
     col_index = 0
 
     for cls, (start, end) in sorted(cls_ranges.items()):
-        with cols[col_index]:
-            selected = (
-                st.session_state.selected_classification == cls
-                and not st.session_state.combine_classifications
-            )
+        selected = (
+            st.session_state.selected_classification == cls
+            and not st.session_state.combine_classifications
+        )
 
-            # ✅ Label logic: single-year vs ranking
-            if year is not None:
-                label = cls
-            else:
-                label = f"{cls} ({start}–{end})"
+        with cols[col_index]:
+            # Single-year vs ranking label
+            label = cls if year is not None else f"{cls} ({start}–{end})"
 
             if st.button(label, key=f"cls-{cls}"):
                 st.session_state.selected_classification = cls
@@ -198,7 +195,7 @@ if should_show_classification_chips(query, team_df):
 
         col_index += 1
 
-    # ✅ Combined (ranking only)
+    # Combined totals (ranking only)
     if show_combined:
         with cols[col_index]:
             if st.button("All Divisions (Combined)", key="cls-combined"):
@@ -226,20 +223,6 @@ if st.session_state.combine_classifications:
 # ---------------------------------
 
 result, explanation = execute_query(query, team_df, rec_df)
-
-
-# ---------------------------------
-# Currently viewing label
-# ---------------------------------
-
-viewing = None
-if st.session_state.combine_classifications:
-    viewing = "All Divisions (Combined)"
-elif st.session_state.selected_classification:
-    viewing = st.session_state.selected_classification
-
-if viewing:
-    st.markdown(f"**Currently viewing:** {viewing}")
 
 
 # ---------------------------------
