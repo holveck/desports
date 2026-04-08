@@ -57,7 +57,7 @@ def render_recall_card(card):
         f"""
         <div style="
             max-width: 440px;
-            margin: 0 auto 18px;
+            margin: 0 0 18px;
             padding: 22px;
             background: #ffffff;
             border-left: 10px solid {primary_color};
@@ -118,7 +118,7 @@ def render_ranking_card(card):
         f"""
         <div style="
             max-width: 440px;
-            margin: 0 auto 18px;
+            margin: 0 0 18px;
             padding: 22px;
             background: #ffffff;
             border-left: 10px solid {primary_color};
