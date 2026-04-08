@@ -76,7 +76,7 @@ def render_recall_card(card):
 
         </div>
         """,
-        height=200,
+        height=100,
     )
 
 
@@ -128,5 +128,5 @@ def render_ranking_card(card):
 
         </div>
         """,
-        height=200,
+        height=100,
     )
