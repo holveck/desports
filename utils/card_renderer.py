@@ -1,9 +1,5 @@
-import streamlit as st
+from streamlit.components.v1 import html as raw_html
 
-
-# --------------------------------------------------
-# Color helpers
-# --------------------------------------------------
 
 def get_colors(card):
     primary = (
@@ -20,10 +16,6 @@ def get_colors(card):
     return primary, secondary
 
 
-# --------------------------------------------------
-# Dispatcher
-# --------------------------------------------------
-
 def render_card(card):
     variant = card.get("variant", "recall")
 
@@ -33,93 +25,85 @@ def render_card(card):
         render_recall_card(card)
 
 
-# --------------------------------------------------
-# Recall / Event Card
-# --------------------------------------------------
-
 def render_recall_card(card):
     primary_color, secondary_color = get_colors(card)
 
-    html_block = f"""
-<div style="
-    max-width: 440px;
-    margin-bottom: 8px;
-    padding: 20px;
-    background: #ffffff;
-    border-left: 8px solid {primary_color};
-    border-radius: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-">
+    raw_html(
+        f"""
+        <div style="
+            max-width: 440px;
+            padding: 20px;
+            margin-bottom: 6px;
+            background: #ffffff;
+            border-left: 8px solid {primary_color};
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
 
-  <div style="font-size:0.95rem;color:#555;margin-bottom:6px;">
-    {card.get("title","")}
-  </div>
+            <div style="font-size:0.95rem;color:#555;margin-bottom:6px;">
+                {card.get("title","")}
+            </div>
 
-  <div style="font-size:1.6rem;font-weight:700;line-height:1.2;margin-bottom:8px;color:#111;">
-    {card.get("primary_value","")}
-  </div>
+            <div style="font-size:1.6rem;font-weight:700;margin-bottom:8px;">
+                {card.get("primary_value","")}
+            </div>
 
-  <div style="font-size:1rem;color:#333;margin-bottom:10px;">
-    {card.get("secondary_value","")}
-  </div>
+            <div style="font-size:1rem;color:#333;margin-bottom:10px;">
+                {card.get("secondary_value","")}
+            </div>
 
-  <div style="
-      border-top:1px solid {secondary_color};
-      padding-top:8px;
-      font-size:0.85rem;
-      color:#666;
-  ">
-    {card.get("context","")}
-  </div>
+            <div style="
+                border-top:1px solid {secondary_color};
+                padding-top:8px;
+                font-size:0.85rem;
+                color:#666;
+            ">
+                {card.get("context","")}
+            </div>
+        </div>
+        """,
+        height=250,
+    )
 
-</div>
-"""
-
-    st.markdown(html_block, unsafe_allow_html=True)
-
-
-# --------------------------------------------------
-# Ranking / Leaderboard Card
-# --------------------------------------------------
 
 def render_ranking_card(card):
     primary_color, secondary_color = get_colors(card)
 
-    html_block = f"""
-<div style="
-    max-width: 440px;
-    margin-bottom: 8px;
-    padding: 20px;
-    background: #ffffff;
-    border-left: 8px solid {primary_color};
-    border-radius: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-">
+    raw_html(
+        f"""
+        <div style="
+            max-width: 440px;
+            padding: 20px;
+            margin-bottom: 6px;
+            background: #ffffff;
+            border-left: 8px solid {primary_color};
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        ">
 
-  <div style="font-size:0.95rem;color:#555;margin-bottom:8px;">
-    {card.get("title","")}
-  </div>
+            <div style="font-size:0.95rem;color:#555;margin-bottom:8px;">
+                {card.get("title","")}
+            </div>
 
-  <div style="font-size:1.5rem;font-weight:700;color:#111;margin-bottom:4px;">
-    {card.get("primary_value","")}
-  </div>
+            <div style="font-size:1.5rem;font-weight:700;margin-bottom:4px;">
+                {card.get("primary_value","")}
+            </div>
 
-  <div style="font-size:1.25rem;font-weight:600;color:{primary_color};margin-bottom:10px;">
-    {card.get("secondary_value","")}
-  </div>
+            <div style="font-size:1.25rem;font-weight:600;color:{primary_color};margin-bottom:10px;">
+                {card.get("secondary_value","")}
+            </div>
 
-  <div style="
-      border-top:1px solid {secondary_color};
-      padding-top:8px;
-      font-size:0.85rem;
-      color:#666;
-  ">
-    {card.get("context","")}
-  </div>
-
-</div>
-"""
-
-    st.markdown(html_block, unsafe_allow_html=True)
+            <div style="
+                border-top:1px solid {secondary_color};
+                padding-top:8px;
+                font-size:0.85rem;
+                color:#666;
+            ">
+                {card.get("context","")}
+            </div>
+        </div>
+        """,
+        height=250,
+    )
