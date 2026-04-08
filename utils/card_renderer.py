@@ -1,67 +1,94 @@
-import streamlit.components.v1 as components
 import streamlit as st
+from streamlit.components.v1 import html as raw_html
 
 
 def render_card(card):
-    border_color = card.get("accent_color") or "#DDDDDD"
+    variant = card.get("variant", "recall")
 
-    html_block = f"""
-    <div style="
-        display: flex;
-        margin-bottom: 8px;
-    ">
+    if variant == "ranking":
+        render_ranking_card(card)
+    else:
+        render_recall_card(card)
+
+
+def render_recall_card(card):
+    raw_html(
+        f"""
         <div style="
-            border: 3px solid {border_color};
+            max-width: 440px;
+            margin: 0 auto 16px;
+            padding: 22px;
+            background: white;
+            border-left: 10px solid {card['primary_color']};
             border-radius: 12px;
-            padding: 14px 18px;
-            background-color: #ffffff;
-            max-width: 480px;
-            width: 100%;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont,
-                         'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont;
         ">
-            <div style="
-                font-size: 0.95rem;
-                font-weight: 600;
-                margin-bottom: 6px;
-                color: #333;
-            ">
-                {card["title"]}
+            <div style="font-size: 0.95rem; color: #555; margin-bottom: 6px;">
+                {card['title']}
+            </div>
+
+            <div style="font-size: 1.8rem; font-weight: 700; margin-bottom: 8px;">
+                {card['primary_value']}
+            </div>
+
+            <div style="font-size: 1rem; color: #333;">
+                {card.get("secondary_value", "")}
             </div>
 
             <div style="
-                font-size: 1.8rem;
-                font-weight: 700;
-                margin-bottom: 4px;
-                color: #000;
-                line-height: 1.2;
+                margin-top: 14px;
+                padding-top: 8px;
+                border-top: 1px solid {card['secondary_color']}33;
+                font-size: 0.9rem;
+                color: #666;
             ">
-                {card["primary_value"]}
+                {card.get("context","")}
             </div>
-    """
-
-    if card.get("secondary_value"):
-        html_block += f"""
-            <div style="
-                font-size: 1rem;
-                color: #555;
-                margin-top: 2px;
-            ">
-                {card["secondary_value"]}
-            </div>
-        """
-
-    html_block += """
         </div>
-    </div>
-    """
+        """,
+        height=260,
+    )
 
-    # ✅ Increase height so the iframe does not clip native Streamlit elements below
-    components.html(html_block, height=140)
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-    # ✅ Native Streamlit expander — preserved exactly as you wanted
-    if card.get("details_rows") is not None:
-        with st.expander("Show details"):
-            st.dataframe(card["details_rows"], use_container_width=True)
+def render_ranking_card(card):
+    raw_html(
+        f"""
+        <div style="
+            max-width: 440px;
+            margin: 0 auto 16px;
+            padding: 22px;
+            background: white;
+            border-left: 10px solid {card['primary_color']};
+            border-radius: 12px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont;
+        ">
+            <div style="font-size: 0.95rem; color: #555; margin-bottom: 8px;">
+                {card['title']}
+            </div>
+
+            <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px;">
+                {card['primary_value']}
+            </div>
+
+            <div style="
+                font-size: 1.4rem;
+                font-weight: 600;
+                color: {card['secondary_color']};
+                margin-bottom: 10px;
+            ">
+                {card['secondary_value']}
+            </div>
+
+            <div style="
+                margin-top: 10px;
+                padding-top: 8px;
+                border-top: 1px solid {card['secondary_color']}33;
+                font-size: 0.9rem;
+                color: #666;
+            ">
+                {card.get("context","")}
+            </div>
+        </div>
+        """,
+        height=260,
+    )
