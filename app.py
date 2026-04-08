@@ -93,7 +93,7 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    # User explicitly specified a classification → no chips
+    # User explicitly specified classification → no chips
     if filters.get("classification") is not None:
         return False
 
@@ -146,7 +146,7 @@ query = normalize_query(query)
 
 
 # ---------------------------------
-# Ranking default (only once)
+# Ranking default (combined totals ONCE)
 # ---------------------------------
 
 if (
@@ -163,58 +163,51 @@ if (
 
 if should_show_classification_chips(query, team_df):
     sport = query["filters"]["sport"]
+    year = query["filters"].get("year")
     cls_ranges = get_classification_ranges(query, team_df)
 
     st.markdown("**This sport has multiple championship classifications.**")
     st.markdown("Choose how you’d like to view the results:")
 
-    # Number of chips (exclude combined for recall queries)
     show_combined = query.get("intent") == "ranking"
     total_cols = len(cls_ranges) + (1 if show_combined else 0)
     cols = st.columns(total_cols)
 
-    i = 0
+    col_index = 0
+
     for cls, (start, end) in sorted(cls_ranges.items()):
-        selected = (
-            st.session_state.selected_classification == cls
-            and not st.session_state.combine_classifications
-        )
+        with cols[col_index]:
+            selected = (
+                st.session_state.selected_classification == cls
+                and not st.session_state.combine_classifications
+            )
 
-        with cols[i]:
-            if selected:
-                st.markdown(
-                    "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-                    unsafe_allow_html=True
-                )
+            # ✅ Label logic: single-year vs ranking
+            if year is not None:
+                label = cls
+            else:
+                label = f"{cls} ({start}–{end})"
 
-            if st.button(f"{cls} ({start}–{end})", key=f"cls-{cls}"):
+            if st.button(label, key=f"cls-{cls}"):
                 st.session_state.selected_classification = cls
                 st.session_state.combine_classifications = False
                 st.rerun()
 
             if selected:
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.caption("✓ Selected")
 
-        i += 1
+        col_index += 1
 
-    # Combined totals chip (ranking only)
+    # ✅ Combined (ranking only)
     if show_combined:
-        combined_selected = st.session_state.combine_classifications
-
-        with cols[i]:
-            if combined_selected:
-                st.markdown(
-                    "<div style='border:2px solid #000;padding:6px;border-radius:6px;'>",
-                    unsafe_allow_html=True
-                )
-
+        with cols[col_index]:
             if st.button("All Divisions (Combined)", key="cls-combined"):
                 st.session_state.selected_classification = None
                 st.session_state.combine_classifications = True
                 st.rerun()
 
-            if combined_selected:
-                st.markdown("</div>", unsafe_allow_html=True)
+            if st.session_state.combine_classifications:
+                st.caption("✓ Selected")
 
 
 # ---------------------------------
@@ -233,6 +226,20 @@ if st.session_state.combine_classifications:
 # ---------------------------------
 
 result, explanation = execute_query(query, team_df, rec_df)
+
+
+# ---------------------------------
+# Currently viewing label
+# ---------------------------------
+
+viewing = None
+if st.session_state.combine_classifications:
+    viewing = "All Divisions (Combined)"
+elif st.session_state.selected_classification:
+    viewing = st.session_state.selected_classification
+
+if viewing:
+    st.markdown(f"**Currently viewing:** {viewing}")
 
 
 # ---------------------------------
