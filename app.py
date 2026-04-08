@@ -16,14 +16,13 @@ from utils.explainer import render_explanation
 # ---------------------------------
 
 st.set_page_config(
-    page_title="Delaware HS Championship Explorer",
+    page_title="Delaware High School Sports Handbook",
     layout="wide",
 )
 
-st.title("🏆 Delaware HS Championship Explorer")
+st.title("🐔 Delaware High School Sports Handbook")
 st.write(
-    "Ask questions about Delaware high school state championships, "
-    "such as who won a title in a given year or which school has the most championships."
+    "Explore state championship history across all high school sports."
 )
 
 
