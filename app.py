@@ -241,6 +241,12 @@ if card:
 else:
     st.warning("I don’t see a matching record for that question.")
 
+# ---------------------------------
+# Show details (underlying data)
+# ---------------------------------
 
+if card.get("details_rows") is not None:
+    with st.expander("Show details"):
+        st.dataframe(card["details_rows"], use_container_width=True)
 with st.expander("How this answer was found"):
     render_explanation(explanation)
