@@ -1,5 +1,6 @@
 """
 Rule-based parser for Delaware high school sports questions.
+Phase 1 + Phase 2 (school summary) support.
 """
 
 import re
@@ -21,9 +22,11 @@ def remove_noise(text):
         "state",
         "high school",
         "championship",
+        "championships",
         "champions",
         "champion",
         "title",
+        "titles",
         "final",
         "won",
         "winner",
@@ -32,7 +35,6 @@ def remove_noise(text):
         "the",
         "has",
         "have",
-        "how many",
     ]
     for word in noise_words:
         text = text.replace(word, "")
@@ -81,9 +83,23 @@ def extract_classification(text):
 # Intent detection
 # --------------------------------------------------
 
-def detect_intent(text):
-    if "how many" in text or "most" in text:
+def detect_intent(text, school_id):
+    """
+    Intent resolution rules (ordered):
+    1. School summary:
+       - "how many" AND a specific school
+    2. Ranking / aggregation:
+       - "most"
+    3. Single-team recall:
+       - default
+    """
+
+    if "how many" in text and school_id:
+        return "school_summary"
+
+    if "most" in text:
         return "aggregation"
+
     return "team_result"
 
 
@@ -105,8 +121,10 @@ def parse_rule_based(question):
     gender = extract_gender(cleaned)
     classification = extract_classification(cleaned)
     school_id = extract_school(question)
-    intent = detect_intent(text)
 
+    intent = detect_intent(text, school_id)
+
+    # Normalize gender for single-gender sports
     if not config.get("gendered", False):
         gender = "overall"
 
@@ -124,20 +142,31 @@ def parse_rule_based(question):
             "school_id": school_id,
         },
         "needs_clarification": [],
+        "original_text": question,
     }
 
-    # ------------------------
-    # Required fields
-    # ------------------------
+    # --------------------------------------------------
+    # Clarification rules
+    # --------------------------------------------------
 
+    # Single-team recall requires year
     if intent == "team_result" and year is None:
         query["needs_clarification"].append("year")
 
-    if config.get("gendered", False) and gender is None:
+    # Gendered sports may require gender (except school summary)
+    if (
+        intent != "school_summary"
+        and config.get("gendered", False)
+        and gender is None
+    ):
         query["needs_clarification"].append("gender")
 
-    if len(valid_classes) > 1 and classification is None:
+    # Classification only required for team_result (chips handle ambiguity)
+    if (
+        intent == "team_result"
+        and len(valid_classes) > 1
+        and classification is None
+    ):
         query["needs_clarification"].append("classification")
 
-    query["original_text"] = question
     return query
