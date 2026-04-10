@@ -35,33 +35,26 @@ def clean_text(value):
 
 
 # --------------------------------------------------
-# Phase 1 + 2 title helpers (SPORT_CONFIG-driven)
+# Title helpers (SPORT_CONFIG‑driven)
 # --------------------------------------------------
 
 def format_sport_label(row):
     """
-    Returns a sport label for recall cards.
-    Gender is included ONLY when gender_policy == 'gendered'.
+    Recall cards:
+    Include gender ONLY when gender_policy == 'gendered'
     """
     sport_key = row["sport"].lower()
     gender = row.get("gender", "").title()
 
     config = SPORT_CONFIG.get(sport_key)
 
-    # Defensive fallback
-    if not config:
-        return f"{gender} {row['sport'].title()}" if gender else row["sport"].title()
-
-    if config.get("gender_policy") == "gendered" and gender:
+    if config and config.get("gender_policy") == "gendered" and gender:
         return f"{gender} {row['sport'].title()}"
 
     return row["sport"].title()
 
 
 def format_ranking_title(filters):
-    """
-    Builds titles for ranking cards.
-    """
     sport_key = filters.get("sport", "").lower()
     sport = filters.get("sport", "").title()
     gender = filters.get("gender", "").title()
@@ -69,15 +62,12 @@ def format_ranking_title(filters):
     config = SPORT_CONFIG.get(sport_key)
 
     if config and config.get("gender_policy") == "gendered" and gender:
-        return f"All-Time {gender} {sport} State Championships"
+        return f"All‑Time {gender} {sport} State Championships"
 
-    return f"All-Time {sport} State Championships"
+    return f"All‑Time {sport} State Championships"
 
 
 def format_school_summary_title(school_name, filters):
-    """
-    Builds titles for school summary cards (Phase 2).
-    """
     sport_key = filters.get("sport", "").lower()
     sport = filters.get("sport", "").title()
     gender = filters.get("gender", "").title()
@@ -96,11 +86,10 @@ def format_school_summary_title(school_name, filters):
 
 def format_year_with_classification(year, classification):
     """
-    Formats years for school summary cards:
-    - 2004 (D-I)
-    - 2006 (D-II)
-    - 2024 (Class 3A)
-    - Overall championships have no suffix
+    2004 (D-I)
+    2006 (D-II)
+    2024 (Class 3A)
+    Overall championships have no suffix
     """
     if not classification or classification == "Overall":
         return str(year)
@@ -127,7 +116,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
     filters = query.get("filters", {})
 
     # --------------------------------------------------
-    # Champion recall (single row) → Variant: recall
+    # TEAM RESULT (single-year recall) → Variant: recall
     # --------------------------------------------------
     if (
         intent == "team_result"
@@ -170,7 +159,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         return card
 
     # --------------------------------------------------
-    # Ranking / aggregation → Variant: ranking
+    # RANKING (who has won the most) → Variant: ranking
     # --------------------------------------------------
     if intent == "aggregation" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
         row = result.iloc[0]
@@ -195,7 +184,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         return card
 
     # --------------------------------------------------
-    # School summary (Phase 2) → Variant: school_summary
+    # SCHOOL SUMMARY (Phase 2 refined) → Variant: school_summary
     # --------------------------------------------------
     if intent == "school_summary" and isinstance(result, pd.DataFrame):
 
@@ -205,11 +194,21 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         school_name = clean_text(result.iloc[0]["champion"])
         school_id = filters.get("school_id")
 
-        total_titles = len(result)
+        classification_filter = filters.get("classification")
 
-        # Build annotated year list
+        # ✅ Scope selection
+        if classification_filter:
+            scoped_df = result[result["classification"] == classification_filter]
+            scope_label = classification_filter
+        else:
+            scoped_df = result
+            scope_label = "All‑time total"
+
+        total_titles = len(scoped_df)
+
+        # ✅ Build annotated year list for card (third line)
         years = (
-            result
+            scoped_df
             .sort_values("year")
             .apply(
                 lambda row: format_year_with_classification(
@@ -226,15 +225,15 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         card = build_card_descriptor(
             title=title,
             primary_value=f"{total_titles} championships",
-            secondary_value=None,
+            secondary_value=", ".join(years),     # ✅ third line = years
             school_id=school_id,
-            details_rows=result,
+            details_rows=scoped_df,               # ✅ table matches scope
             school_styles=school_styles,
         )
 
         card["variant"] = "school_summary"
-        card["context"] = "All-time total"
-        card["details_years"] = years
+        card["context"] = scope_label
+        card["details_years"] = years            # ✅ still used in Show details
 
         return card
 
