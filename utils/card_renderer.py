@@ -1,6 +1,10 @@
 from streamlit.components.v1 import html as raw_html
 
 
+# --------------------------------------------------
+# Color helpers
+# --------------------------------------------------
+
 def get_colors(card):
     primary = (
         card.get("primary_color")
@@ -16,6 +20,10 @@ def get_colors(card):
     return primary, secondary
 
 
+# --------------------------------------------------
+# Dispatcher
+# --------------------------------------------------
+
 def render_card(card):
     variant = card.get("variant", "recall")
 
@@ -25,8 +33,20 @@ def render_card(card):
         render_recall_card(card)
 
 
+# --------------------------------------------------
+# Recall / Event Card (Phase 1)
+# --------------------------------------------------
+
 def render_recall_card(card):
     primary_color, secondary_color = get_colors(card)
+
+    secondary_html = ""
+    if card.get("secondary_value"):
+        secondary_html = f"""
+        <div style="font-size:1rem;color:#333;margin-bottom:10px;">
+            {card.get("secondary_value")}
+        </div>
+        """
 
     raw_html(
         f"""
@@ -49,9 +69,7 @@ def render_recall_card(card):
                 {card.get("primary_value","")}
             </div>
 
-            <div style="font-size:1rem;color:#333;margin-bottom:10px;">
-                {card.get("secondary_value","")}
-            </div>
+            {secondary_html}
 
             <div style="
                 border-top:1px solid {secondary_color};
@@ -61,14 +79,32 @@ def render_recall_card(card):
             ">
                 {card.get("context","")}
             </div>
+
         </div>
         """,
-        height=250,
+        height=260,
     )
 
 
+# --------------------------------------------------
+# Ranking Card (Phase 1)
+# --------------------------------------------------
+
 def render_ranking_card(card):
     primary_color, secondary_color = get_colors(card)
+
+    secondary_html = ""
+    if card.get("secondary_value"):
+        secondary_html = f"""
+        <div style="
+            font-size:1.25rem;
+            font-weight:600;
+            color:{primary_color};
+            margin-bottom:10px;
+        ">
+            {card.get("secondary_value")}
+        </div>
+        """
 
     raw_html(
         f"""
@@ -91,9 +127,7 @@ def render_ranking_card(card):
                 {card.get("primary_value","")}
             </div>
 
-            <div style="font-size:1.25rem;font-weight:600;color:{primary_color};margin-bottom:10px;">
-                {card.get("secondary_value","")}
-            </div>
+            {secondary_html}
 
             <div style="
                 border-top:1px solid {secondary_color};
@@ -103,7 +137,8 @@ def render_ranking_card(card):
             ">
                 {card.get("context","")}
             </div>
+
         </div>
         """,
-        height=250,
+        height=260,
     )
