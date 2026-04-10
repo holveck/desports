@@ -160,7 +160,10 @@ if (
 # Classification chips
 # ---------------------------------
 
-if should_show_classification_chips(query, team_df):
+if (
+    query.get("intent") != "school_summary"
+    and should_show_classification_chips(query, team_df)
+):
     sport = query["filters"]["sport"]
     year = query["filters"].get("year")
     cls_ranges = get_classification_ranges(query, team_df)
@@ -210,7 +213,10 @@ if should_show_classification_chips(query, team_df):
 # Apply classification AFTER UI
 # ---------------------------------
 
-if st.session_state.selected_classification:
+if (
+    st.session_state.selected_classification
+    and query.get("intent") != "school_summary"
+):
     query["filters"]["classification"] = st.session_state.selected_classification
 
 if st.session_state.combine_classifications:
