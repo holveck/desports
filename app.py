@@ -92,6 +92,10 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
+    # ✅ Phase 2 fix: NEVER show chips for school summary
+    if query.get("intent") == "school_summary":
+        return False
+
     # User explicitly specified classification → no chips
     if filters.get("classification") is not None:
         return False
@@ -126,7 +130,7 @@ def get_classification_ranges(query, df):
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. Who won the 2022 field hockey state title?",
+    placeholder="e.g. How many field hockey state titles has Cape Henlopen won?",
 )
 
 if not question:
@@ -160,10 +164,7 @@ if (
 # Classification chips
 # ---------------------------------
 
-if (
-    query.get("intent") != "school_summary"
-    and should_show_classification_chips(query, team_df)
-):
+if should_show_classification_chips(query, team_df):
     sport = query["filters"]["sport"]
     year = query["filters"].get("year")
     cls_ranges = get_classification_ranges(query, team_df)
@@ -184,7 +185,6 @@ if (
         )
 
         with cols[col_index]:
-            # Single-year vs ranking label
             label = cls if year is not None else f"{cls} ({start}–{end})"
 
             if st.button(label, key=f"cls-{cls}"):
@@ -197,7 +197,6 @@ if (
 
         col_index += 1
 
-    # Combined totals (ranking only)
     if show_combined:
         with cols[col_index]:
             if st.button("All Divisions (Combined)", key="cls-combined"):
@@ -215,7 +214,7 @@ if (
 
 if (
     st.session_state.selected_classification
-    and query.get("intent") != "school_summary"
+    and query.get("intent") != "school_summary"   # ✅ Phase 2 fix
 ):
     query["filters"]["classification"] = st.session_state.selected_classification
 
@@ -243,9 +242,6 @@ card = result_to_card(
 )
 
 if card:
-    # ---------------------------------
-    # Render primary result card
-    # ---------------------------------
     render_card(card)
 
     # ---------------------------------
@@ -255,24 +251,20 @@ if card:
     if card.get("details_rows") is not None:
         with st.expander("Show details"):
 
-            # Phase 2: annotated year list for school summary cards
+            # Phase 2: annotated year list
             if card.get("details_years"):
                 st.markdown("**Years won:**")
                 st.write(", ".join(card["details_years"]))
                 st.markdown("---")
 
-            # Preserve existing details table
-            st.dataframe(
-                card["details_rows"],
-                use_container_width=True
-            )
+            st.dataframe(card["details_rows"], use_container_width=True)
 
 else:
     st.warning("I don’t see a matching record for that question.")
 
 
 # ---------------------------------
-# Explanation (unchanged)
+# Explanation
 # ---------------------------------
 
 with st.expander("How this answer was found"):
