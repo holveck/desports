@@ -161,7 +161,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
     # --------------------------------------------------
     # RANKING (who has won the most) → Variant: ranking
     # --------------------------------------------------
-    if intent == "aggregation" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
+    if intent == "ranking" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
         row = result.iloc[0]
 
         champ_name = clean_text(row["champion"])
