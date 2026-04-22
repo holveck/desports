@@ -15,35 +15,7 @@ def apply_team_filters(df, filters, explanation):
         explanation.append(f"Filtered by sport = {filters['sport']}")
 
     if filters.get("gender"):
-        df = df[df[", explanation)        df = df[df["gender"] == filters["gender"]]
-
-        if filters.get("school_id"):
-            canonical = get_canonical_school_name(filters["school_id"])
-            if canonical:
-                df = df[df["champion"] == canonical]
-                explanation.append(f"Filtered by champion = {canonical}")
-
-        explanation.append("Summarized championships for a single school")
-        return df, explanation
-
-    # RANKING
-    if intent == "ranking":
-        df = team_df.copy()
-        df = apply_team_filters(df, filters, explanation)
-
-        grouped = (
-            df.groupby("champion")
-              .size()
-              .reset_index(name="titles")
-              .sort_values("titles", ascending=False)
-        )
-
-        explanation.append("Grouped championships by school")
-        explanation.append("Ranked schools by number of titles")
-
-        return grouped.head(1), explanation
-
-    return None, ["Unsupported query"]
+        df = df[df["gender"] == filters["gender"]]
         explanation.append(f"Filtered by gender = {filters['gender']}")
 
     if filters.get("year"):
@@ -74,6 +46,49 @@ def execute_query(query, team_df, rec_df):
         df = apply_team_filters(df, filters, explanation)
         return df, explanation
 
-    # SCHOOL SUMMARY (Phase 2 + 3)
+    # SCHOOL SUMMARY
     if intent == "school_summary":
         df = team_df.copy()
+        df = apply_team_filters(df, filters, explanation)
+
+        if filters.get("school_id"):
+            canonical = get_canonical_school_name(filters["school_id"])
+            if canonical:
+                df = df[df["champion"] == canonical]
+                explanation.append(f"Filtered by champion = {canonical}")
+
+        explanation.append("Summarized championships for a single school")
+        return df, explanation
+
+    # AGGREGATION (legacy count)
+    if intent == "aggregation":
+        df = team_df.copy()
+        df = apply_team_filters(df, filters, explanation)
+
+        if filters.get("school_id"):
+            canonical = get_canonical_school_name(filters["school_id"])
+            if canonical:
+                df = df[df["champion"] == canonical]
+                explanation.append(f"Filtered by champion = {canonical}")
+
+        explanation.append("Counted championship results")
+        return len(df), explanation
+
+    # RANKING
+    if intent == "ranking":
+        df = team_df.copy()
+        df = apply_team_filters(df, filters, explanation)
+
+        grouped = (
+            df.groupby("champion")
+              .size()
+              .reset_index(name="titles")
+              .sort_values("titles", ascending=False)
+        )
+
+        explanation.append("Grouped championships by school")
+        explanation.append("Ranked schools by number of titles")
+
+        return grouped.head(1), explanation
+
+    return None, ["Unsupported query"]
