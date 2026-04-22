@@ -1,6 +1,6 @@
 """
 Rule-based parser for Delaware high school sports questions.
-Phase 1 + Phase 2 (school summary) support.
+Phase 1 + Phase 2 + Phase 3 (since YEAR) support.
 """
 
 import re
@@ -52,6 +52,13 @@ def extract_year(text):
     return None
 
 
+def extract_since_year(text):
+    match = re.search(r"since\s+(19|20)\d{2}", text)
+    if match:
+        return int(match.group().split()[-1])
+    return None
+
+
 def extract_gender(text):
     if "girls" in text:
         return "girls"
@@ -84,22 +91,10 @@ def extract_classification(text):
 # --------------------------------------------------
 
 def detect_intent(text, school_id):
-    """
-    Intent resolution rules (ordered):
-    1. School summary:
-       - "how many" AND a specific school
-    2. Ranking / aggregation:
-       - "most"
-    3. Single-team recall:
-       - default
-    """
-
     if "how many" in text and school_id:
         return "school_summary"
-
     if "most" in text:
-        return "aggregation"
-
+        return "ranking"
     return "team_result"
 
 
@@ -113,18 +108,18 @@ def parse_rule_based(question):
 
     sport = extract_sport(cleaned)
     if not sport:
-        return None  # fall back to LLM
+        return None
 
     config = SPORT_CONFIG[sport]
 
     year = extract_year(cleaned)
+    since_year = extract_since_year(text)
     gender = extract_gender(cleaned)
     classification = extract_classification(cleaned)
     school_id = extract_school(question)
 
     intent = detect_intent(text, school_id)
 
-    # Normalize gender for single-gender sports
     if not config.get("gendered", False):
         gender = "overall"
 
@@ -138,6 +133,7 @@ def parse_rule_based(question):
             "sport": sport,
             "gender": gender,
             "year": year,
+            "since_year": since_year,   # ✅ Phase 3
             "classification": classification,
             "school_id": school_id,
         },
@@ -145,23 +141,12 @@ def parse_rule_based(question):
         "original_text": question,
     }
 
-    # --------------------------------------------------
-    # Clarification rules
-    # --------------------------------------------------
-
-    # Single-team recall requires year
     if intent == "team_result" and year is None:
         query["needs_clarification"].append("year")
 
-    # Gendered sports may require gender (except school summary)
-    if (
-        intent != "school_summary"
-        and config.get("gendered", False)
-        and gender is None
-    ):
+    if intent != "school_summary" and config.get("gendered", False) and gender is None:
         query["needs_clarification"].append("gender")
 
-    # Classification only required for team_result (chips handle ambiguity)
     if (
         intent == "team_result"
         and len(valid_classes) > 1
