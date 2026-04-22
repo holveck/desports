@@ -92,11 +92,11 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    # ✅ Phase 2 fix: NEVER show chips for school summary
+    # Never show chips for school summaries
     if query.get("intent") == "school_summary":
         return False
 
-    # User explicitly specified classification → no chips
+    # Explicit classification suppresses chips
     if filters.get("classification") is not None:
         return False
 
@@ -130,7 +130,7 @@ def get_classification_ranges(query, df):
 
 question = st.text_input(
     "Ask a question:",
-    placeholder="e.g. How many field hockey state titles has Cape Henlopen won?",
+    placeholder="e.g. Who has won the most Division I field hockey state titles?",
 )
 
 if not question:
@@ -150,10 +150,12 @@ query = normalize_query(query)
 
 # ---------------------------------
 # Ranking default (combined totals ONCE)
+# ✅ FIX: only default if classification not explicitly provided
 # ---------------------------------
 
 if (
     query.get("intent") == "ranking"
+    and query["filters"].get("classification") is None
     and st.session_state.selected_classification is None
     and not st.session_state.combine_classifications
 ):
@@ -210,15 +212,20 @@ if should_show_classification_chips(query, team_df):
 
 # ---------------------------------
 # Apply classification AFTER UI
+# ✅ FIX: do not override parser classification
 # ---------------------------------
 
 if (
     st.session_state.selected_classification
-    and query.get("intent") != "school_summary"   # ✅ Phase 2 fix
+    and query.get("intent") != "school_summary"
 ):
     query["filters"]["classification"] = st.session_state.selected_classification
 
-if st.session_state.combine_classifications:
+if (
+    st.session_state.combine_classifications
+    and query.get("intent") == "ranking"
+    and query["filters"].get("classification") is None
+):
     query["filters"].pop("classification", None)
 
 
@@ -245,13 +252,12 @@ if card:
     render_card(card)
 
     # ---------------------------------
-    # Show details (underlying data)
+    # Show details
     # ---------------------------------
 
     if card.get("details_rows") is not None:
         with st.expander("Show details"):
 
-            # Phase 2: annotated year list
             if card.get("details_years"):
                 st.markdown("**Years won:**")
                 st.write(", ".join(card["details_years"]))
