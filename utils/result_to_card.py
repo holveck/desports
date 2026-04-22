@@ -7,7 +7,7 @@ from utils.sport_config import SPORT_CONFIG
 
 
 # --------------------------------------------------
-# Helpers (existing, unchanged)
+# Helpers
 # --------------------------------------------------
 
 def normalize_school_name(name):
@@ -35,14 +35,10 @@ def clean_text(value):
 
 
 # --------------------------------------------------
-# Title helpers (SPORT_CONFIG‑driven)
+# Title helpers (SPORT_CONFIG-driven)
 # --------------------------------------------------
 
 def format_sport_label(row):
-    """
-    Recall cards:
-    Include gender ONLY when gender_policy == 'gendered'
-    """
     sport_key = row["sport"].lower()
     gender = row.get("gender", "").title()
 
@@ -62,9 +58,9 @@ def format_ranking_title(filters):
     config = SPORT_CONFIG.get(sport_key)
 
     if config and config.get("gender_policy") == "gendered" and gender:
-        return f"All‑Time {gender} {sport} State Championships"
+        return f"All-Time {gender} {sport} State Championships"
 
-    return f"All‑Time {sport} State Championships"
+    return f"All-Time {sport} State Championships"
 
 
 def format_school_summary_title(school_name, filters):
@@ -81,16 +77,10 @@ def format_school_summary_title(school_name, filters):
 
 
 # --------------------------------------------------
-# Phase 2 helper: year + classification annotation
+# Phase 2/3 helper: year + classification annotation
 # --------------------------------------------------
 
 def format_year_with_classification(year, classification):
-    """
-    2004 (D-I)
-    2006 (D-II)
-    2024 (Class 3A)
-    Overall championships have no suffix
-    """
     if not classification or classification == "Overall":
         return str(year)
 
@@ -107,7 +97,7 @@ def format_year_with_classification(year, classification):
 
 
 # --------------------------------------------------
-# Result → Card mapping (Phase 1 + Phase 2)
+# Result -> Card mapping
 # --------------------------------------------------
 
 def result_to_card(result, explanation, query, school_styles, school_name_lookup):
@@ -116,7 +106,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
     filters = query.get("filters", {})
 
     # --------------------------------------------------
-    # TEAM RESULT (single-year recall) → Variant: recall
+    # TEAM RESULT (recall)
     # --------------------------------------------------
     if (
         intent == "team_result"
@@ -152,14 +142,13 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         )
 
         card["variant"] = "recall"
-
         if pd.notna(row.get("classification")):
             card["context"] = row["classification"]
 
         return card
 
     # --------------------------------------------------
-    # RANKING (who has won the most) → Variant: ranking
+    # RANKING
     # --------------------------------------------------
     if intent == "ranking" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
         row = result.iloc[0]
@@ -180,11 +169,10 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
 
         card["variant"] = "ranking"
         card["context"] = filters.get("classification", "All Divisions (Combined)")
-
         return card
 
     # --------------------------------------------------
-    # SCHOOL SUMMARY (Phase 2 refined) → Variant: school_summary
+    # SCHOOL SUMMARY (Phase 2 + Phase 3)
     # --------------------------------------------------
     if intent == "school_summary" and isinstance(result, pd.DataFrame):
 
@@ -193,23 +181,20 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
 
         school_name = clean_text(result.iloc[0]["champion"])
         school_id = filters.get("school_id")
-
         classification_filter = filters.get("classification")
 
-        # ✅ Scope selection
         if classification_filter:
             scoped_df = result[result["classification"] == classification_filter]
             scope_label = classification_filter
         else:
             scoped_df = result
             if filters.get("since_year"):
-            scope_label = f"Since {filters['since_year']}"
+                scope_label = f"Since {filters['since_year']}"
             else:
-            scope_label = "All‑time total"
+                scope_label = "All-time total"
 
         total_titles = len(scoped_df)
 
-        # ✅ Build annotated year list for card (third line)
         years = (
             scoped_df
             .sort_values("year")
@@ -228,20 +213,20 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         card = build_card_descriptor(
             title=title,
             primary_value=f"{total_titles} championships",
-            secondary_value=", ".join(years),     # ✅ third line = years
+            secondary_value=", ".join(years),
             school_id=school_id,
-            details_rows=scoped_df,               # ✅ table matches scope
+            details_rows=scoped_df,
             school_styles=school_styles,
         )
 
         card["variant"] = "school_summary"
         card["context"] = scope_label
-        card["details_years"] = years            # ✅ still used in Show details
+        card["details_years"] = years
 
         return card
 
     # --------------------------------------------------
-    # Numeric aggregation (reserved for Phase 3+)
+    # LEGACY NUMERIC AGGREGATION
     # --------------------------------------------------
     if isinstance(result, int):
         return build_card_descriptor(
