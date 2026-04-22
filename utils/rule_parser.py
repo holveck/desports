@@ -114,6 +114,8 @@ def parse_rule_based(question):
 
     year = extract_year(cleaned)
     since_year = extract_since_year(text)
+    if since_year is not None:
+        year = None
     gender = extract_gender(cleaned)
     classification = extract_classification(cleaned)
     school_id = extract_school(question)
