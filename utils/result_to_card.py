@@ -202,6 +202,9 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
             scope_label = classification_filter
         else:
             scoped_df = result
+            if filters.get("since_year"):
+            scope_label = f"Since {filters['since_year']}"
+            else:
             scope_label = "All‑time total"
 
         total_titles = len(scoped_df)
