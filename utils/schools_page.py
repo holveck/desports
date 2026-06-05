@@ -75,79 +75,113 @@ def render_school_selector(schools_df):
     )
 
 
-def render_school_profile_header(summary):
+def render_school_identity_card(summary):
     school = summary["school_record"]
 
-    with st.container(border=True):
-        left_col, right_col = st.columns([3, 1])
+    school_name = school.get("canonical_name", "Unknown school")
+    nickname = school.get("nickname", "")
+    city = school.get("city", "")
+    state = school.get("state", "")
 
-        with left_col:
-            st.subheader(school.get("canonical_name", "Unknown school"))
+    location_bits = [str(x).strip() for x in [city, state] if pd.notna(x) and str(x).strip()]
+    location_line = ", ".join(location_bits)
 
-            context_bits = []
-            for field in ["nickname", "city", "conference"]:
-                value = school.get(field)
-                if pd.notna(value) and str(value).strip():
-                    context_bits.append(str(value).strip())
+    sub_bits = []
+    if pd.notna(nickname) and str(nickname).strip():
+        sub_bits.append(str(nickname).strip())
+    if location_line:
+        sub_bits.append(location_line)
 
-            if context_bits:
-                st.caption(" • ".join(context_bits))
+    sub_line = " • ".join(sub_bits)
 
-        with right_col:
-            st.metric(
-                label="Team state championships",
-                value=summary["total_titles"],
-                border=True,
-            )
+    st.markdown(
+        f"""
+        <div style="
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 0.75rem;
+            padding: 1.1rem 1.25rem 1rem 1.25rem;
+            background: transparent;
+            margin-bottom: 0.75rem;
+        ">
+            <div style="
+                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 2rem;
+                line-height: 1.05;
+                font-weight: 700;
+                margin: 0;
+                padding: 0;
+            ">
+                {school_name}
+            </div>
+            <div style="
+                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 0.95rem;
+                line-height: 1.2;
+                font-weight: 400;
+                color: rgba(49, 51, 63, 0.72);
+                margin-top: 0.25rem;
+            ">
+                {sub_line}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-def render_recent_championship_cards(summary):
+def render_school_kpi_card(summary):
+    total_titles = summary["total_titles"]
+
+    st.markdown(
+        f"""
+        <div style="
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 0.75rem;
+            padding: 1.1rem 1.25rem 1rem 1.25rem;
+            background: transparent;
+            margin-bottom: 1rem;
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 0.55rem;
+                margin: 0;
+                padding: 0;
+            ">
+                <div style="
+                    font-size: 1.5rem;
+                    line-height: 1;
+                ">🏆</div>
+                <div style="
+                    font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                    font-size: 2rem;
+                    line-height: 1;
+                    font-weight: 700;
+                    margin: 0;
+                    padding: 0;
+                ">
+                    {total_titles}
+                </div>
+            </div>
+            <div style="
+                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 0.95rem;
+                line-height: 1.2;
+                font-weight: 400;
+                color: rgba(49, 51, 63, 0.72);
+                margin-top: 0.45rem;
+            ">
+                State Championships
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_recent_championships_placeholder():
     st.markdown("### Recent championships")
-
-    recent_titles = summary["recent_titles"]
-
-    if recent_titles.empty:
-        st.info("No team championship records found for this school.")
-        return
-
-    for _, row in recent_titles.iterrows():
-        year = row.get("year")
-        sport = row.get("sport", "Unknown sport")
-        classification = row.get("classification")
-        runner_up = row.get("runner_up")
-        head_coach = row.get("head_coach")
-        venue = row.get("venue")
-
-        with st.container(border=True):
-            top_left, top_right = st.columns([3, 1])
-
-            with top_left:
-                title_line = str(sport)
-                if pd.notna(classification) and str(classification).strip():
-                    title_line += f" • {classification}"
-                st.markdown(f"**{title_line}**")
-
-            with top_right:
-                if pd.notna(year):
-                    try:
-                        st.caption(str(int(year)))
-                    except Exception:
-                        st.caption(str(year))
-
-            detail_bits = []
-
-            if pd.notna(runner_up) and str(runner_up).strip():
-                detail_bits.append(f"Runner-up: {runner_up}")
-
-            if pd.notna(head_coach) and str(head_coach).strip():
-                detail_bits.append(f"Coach: {head_coach}")
-
-            if pd.notna(venue) and str(venue).strip():
-                detail_bits.append(f"Venue: {venue}")
-
-            if detail_bits:
-                for bit in detail_bits:
-                    st.write(bit)
+    st.info("Recent championships section will be restyled next.")
 
 
 def render_all_team_titles(team_titles_df):
@@ -202,8 +236,7 @@ def render_school_page(schools_df, team_df):
     team_titles_df = get_team_titles_for_school(team_df, selected_school)
     summary = build_school_summary(school_record, team_titles_df)
 
-    render_school_profile_header(summary)
-    st.write("")
-    render_recent_championship_cards(summary)
-    st.write("")
+    render_school_identity_card(summary)
+    render_school_kpi_card(summary)
+    render_recent_championships_placeholder()
     render_all_team_titles(team_titles_df)
