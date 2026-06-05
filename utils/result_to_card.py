@@ -137,7 +137,9 @@ def build_team_result_card(result, school_styles, school_name_lookup):
 
     story_link = clean_text(row.get("link"))
     if story_link:
-        card["secondary_link"] = story_link
+        story_link = str(story_link).strip()
+        if story_link and story_link.lower() not in {"nan", "none", "#"}:
+            card["secondary_link"] = story_link
 
     card["variant"] = "recall"
 
