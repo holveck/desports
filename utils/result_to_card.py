@@ -5,6 +5,7 @@ import re
 from utils.card_descriptor import build_card_descriptor
 from utils.sport_config import SPORT_CONFIG
 
+
 # --------------------------------------------------
 # Helpers
 # --------------------------------------------------
@@ -146,7 +147,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
 
         return card
 
-        # --------------------------------------------------
+    # --------------------------------------------------
     # RANKING
     # --------------------------------------------------
     if intent == "ranking" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
@@ -156,25 +157,27 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         title = format_ranking_title(filters)
         top_titles = int(result.iloc[0]["titles"])
 
-        leaders = [
-            clean_text(name)
-            for name in result["champion"].tolist()
-            if pd.notna(name)
-        ]
+        if len(result) == 1:
+            row = result.iloc[0]
 
-        if len(leaders) == 1:
-            champ_name = leaders[0]
+            champ_name = clean_text(row["champion"])
             school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
             card = build_card_descriptor(
                 title=title,
                 primary_value=champ_name,
-                secondary_value=f"{top_titles} championships",
+                secondary_value=f"{row['titles']} championships",
                 school_id=school_id,
                 details_rows=result,
                 school_styles=school_styles,
             )
         else:
+            leaders = [
+                clean_text(name)
+                for name in result["champion"].tolist()
+                if pd.notna(name)
+            ]
+
             leader_text = ", ".join(leaders[:3])
             if len(leaders) > 3:
                 leader_text += f" +{len(leaders) - 3} more"
@@ -182,7 +185,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
             card = build_card_descriptor(
                 title=title,
                 primary_value=leader_text,
-                secondary_value=f"{len(leaders)} schools with {top_titles} championships",
+                secondary_value=f"{top_titles} championships",
                 school_id=None,
                 details_rows=result,
                 school_styles=school_styles,
@@ -193,30 +196,60 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
 
         card["variant"] = "ranking"
         card["context"] = filters.get("classification", "All Divisions (Combined)")
+        return card
 
     # --------------------------------------------------
-    # SCHOOL SUMMARY
+    # SCHOOL SUMMARY (Phase 2 + Phase 3)
     # --------------------------------------------------
     if intent == "school_summary" and isinstance(result, pd.DataFrame):
+
         if result.empty:
             return None
 
-        champ_name = clean_text(result.iloc[0]["champion"])
-        school_id = school_name_lookup.get(normalize_school_name(champ_name))
+        school_name = clean_text(result.iloc[0]["champion"])
+        school_id = filters.get("school_id")
+        classification_filter = filters.get("classification")
 
-        title = format_school_summary_title(champ_name, filters)
-        total_titles = len(result)
+        if classification_filter:
+            scoped_df = result[result["classification"] == classification_filter]
+            scope_label = classification_filter
+        else:
+            scoped_df = result
+            if filters.get("since_year"):
+                scope_label = f"Since {filters['since_year']}"
+            else:
+                scope_label = "All-time total"
+
+        total_titles = len(scoped_df)
+
+        years = (
+            scoped_df
+            .sort_values("year")
+            .apply(
+                lambda row: format_year_with_classification(
+                    int(row["year"]),
+                    row.get("classification")
+                ),
+                axis=1
+            )
+            .tolist()
+        )
+
+        title = format_school_summary_title(school_name, filters)
 
         card = build_card_descriptor(
             title=title,
-            primary_value=str(total_titles),
-            secondary_value="state championships",
+            primary_value=f"{total_titles} championships",
+            secondary_value=", ".join(years),
             school_id=school_id,
-            details_rows=result,
+            details_rows=scoped_df,
             school_styles=school_styles,
         )
 
         card["variant"] = "school_summary"
+        card["context"] = scope_label
+        card["details_years"] = years
+
         return card
 
     # --------------------------------------------------
