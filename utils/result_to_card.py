@@ -5,8 +5,6 @@ import re
 from utils.card_descriptor import build_card_descriptor
 from utils.sport_config import SPORT_CONFIG
 
-DEFAULT_RANKING_CONTEXT = "All Divisions (Combined)"
-
 # --------------------------------------------------
 # Helpers
 # --------------------------------------------------
@@ -196,7 +194,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         card["variant"] = "ranking"
         card["context"] = filters.get("classification", DEFAULT_RANKING_CONTEXT)
 
-       # --------------------------------------------------
+    # --------------------------------------------------
     # SCHOOL SUMMARY
     # --------------------------------------------------
     if intent == "school_summary" and isinstance(result, pd.DataFrame):
@@ -204,10 +202,9 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
             return None
 
         champ_name = clean_text(result.iloc[0]["champion"])
-        school_name = champ_name
         school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
-        title = format_school_summary_title(school_name, filters)
+        title = format_school_summary_title(champ_name, filters)
         total_titles = len(result)
 
         card = build_card_descriptor(
@@ -220,7 +217,6 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         )
 
         card["variant"] = "school_summary"
-        card["context"] = filters.get("classification", DEFAULT_RANKING_CONTEXT)
         return card
 
     # --------------------------------------------------
