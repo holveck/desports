@@ -272,13 +272,17 @@ st.write(
     "Explore state championship history across all high school sports."
 )
 
-selected_view = st.radio(
+selected_view = st.pills(
     "Navigation",
     options=["Home", "Schools"],
-    index=0 if st.session_state.main_view == "Home" else 1,
-    horizontal=True,
+    selection_mode="single",
+    default=st.session_state.main_view,
+    key="main_view_pills",
     label_visibility="collapsed",
 )
+
+if selected_view is None:
+    selected_view = "Home"
 
 st.session_state.main_view = selected_view
 
