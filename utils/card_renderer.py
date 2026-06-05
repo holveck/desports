@@ -49,6 +49,14 @@ def get_colors(card):
 
 
 # --------------------------------------------------
+# Font stacks
+# --------------------------------------------------
+
+SANS_STACK = "'Unify Sans', 'Helvetica Neue', 'Arial Nova', Helvetica, Arial, sans-serif"
+SERIF_STACK = "'Georgia Pro', Georgia, 'Droid Serif', serif"
+
+
+# --------------------------------------------------
 # Shared renderer
 # --------------------------------------------------
 
@@ -74,6 +82,7 @@ def render_base_card(
             font-size:0.85rem;
             line-height:1.4;
             color:#666;
+            font-family:{SANS_STACK};
             white-space:normal;
             overflow-wrap:anywhere;
             word-break:break-word;
@@ -92,7 +101,7 @@ def render_base_card(
             border-left:8px solid {primary_color};
             border-radius:10px;
             box-shadow:0 1px 2px rgba(0,0,0,0.05);
-            font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            font-family:{SERIF_STACK};
             color:#111;
         ">
 
@@ -100,6 +109,7 @@ def render_base_card(
                 font-size:0.95rem;
                 line-height:1.35;
                 color:#555;
+                font-family:{SANS_STACK};
                 margin-bottom:{title_margin_bottom};
                 white-space:normal;
                 overflow-wrap:anywhere;
@@ -112,6 +122,7 @@ def render_base_card(
                 font-size:{primary_font_size};
                 font-weight:700;
                 line-height:1.15;
+                font-family:{SANS_STACK};
                 margin-bottom:{primary_margin_bottom};
                 white-space:normal;
                 overflow-wrap:anywhere;
@@ -139,6 +150,8 @@ def render_card(card):
 
     if variant == "ranking":
         render_ranking_card(card)
+    elif variant == "school_summary":
+        render_school_summary_card(card)
     else:
         render_recall_card(card)
 
@@ -157,6 +170,7 @@ def render_recall_card(card):
             font-size:1rem;
             line-height:1.45;
             color:#333;
+            font-family:{SERIF_STACK};
             margin-bottom:10px;
             white-space:normal;
             overflow-wrap:anywhere;
@@ -191,6 +205,7 @@ def render_ranking_card(card):
             font-weight:600;
             line-height:1.3;
             color:{primary_color};
+            font-family:{SANS_STACK};
             margin-bottom:10px;
             white-space:normal;
             overflow-wrap:anywhere;
@@ -205,5 +220,38 @@ def render_ranking_card(card):
         title_margin_bottom="8px",
         primary_font_size="1.5rem",
         primary_margin_bottom="4px",
+        secondary_html=secondary_html,
+    )
+
+
+# --------------------------------------------------
+# School Summary Card
+# --------------------------------------------------
+
+def render_school_summary_card(card):
+    secondary_value = safe_text(card.get("secondary_value"))
+
+    secondary_html = ""
+    if secondary_value:
+        secondary_html = f"""
+        <div style="
+            font-size:1rem;
+            line-height:1.5;
+            color:#333;
+            font-family:{SERIF_STACK};
+            margin-bottom:10px;
+            white-space:normal;
+            overflow-wrap:anywhere;
+            word-break:break-word;
+        ">
+            {secondary_value}
+        </div>
+        """
+
+    render_base_card(
+        card=card,
+        title_margin_bottom="6px",
+        primary_font_size="1.55rem",
+        primary_margin_bottom="8px",
         secondary_html=secondary_html,
     )
