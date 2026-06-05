@@ -38,6 +38,9 @@ if "combine_classifications" not in st.session_state:
 if "last_question" not in st.session_state:
     st.session_state.last_question = None
 
+if "selected_school" not in st.session_state:
+    st.session_state.selected_school = None
+
 
 def reset_classification_state():
     st.session_state.selected_classification = None
@@ -64,7 +67,19 @@ def load_data():
     return team_df, rec_df
 
 
+@st.cache_data
+def load_schools():
+    schools_df = pd.read_csv("data/schools.csv", encoding="utf-8")
+
+    for col in schools_df.select_dtypes(include="object").columns:
+        schools_df[col] = schools_df[col].fillna("").astype(str).str.strip()
+
+    schools_df = schools_df.sort_values("canonical_name").reset_index(drop=True)
+    return schools_df
+
+
 team_df, rec_df = load_data()
+schools_df = load_schools()
 school_styles = get_school_styles()
 school_name_lookup = get_school_name_lookup()
 
@@ -113,10 +128,6 @@ def get_classification_ranges(query, df):
 # ---------------------------------
 
 def render_home_page():
-    # ---------------------------------
-    # Question input
-    # ---------------------------------
-
     question = st.text_input(
         "Ask a question:",
         placeholder="e.g. Who has won the most Division I field hockey state titles?",
@@ -130,19 +141,11 @@ def render_home_page():
 
     st.session_state.last_question = question
 
-    # ---------------------------------
-    # Parse + normalize
-    # ---------------------------------
-
     query = parse_rule_based(question)
     if query is None:
         query = parse_with_llm(question)
 
     query = normalize_query(query)
-
-    # ---------------------------------
-    # Ranking default (combined totals ONCE)
-    # ---------------------------------
 
     if (
         query.get("intent") == "ranking"
@@ -151,10 +154,6 @@ def render_home_page():
         and not st.session_state.combine_classifications
     ):
         st.session_state.combine_classifications = True
-
-    # ---------------------------------
-    # Classification chips
-    # ---------------------------------
 
     if should_show_classification_chips(query, team_df):
         sport = query["filters"]["sport"]
@@ -199,10 +198,6 @@ def render_home_page():
                 if st.session_state.combine_classifications:
                     st.caption("✓ Selected")
 
-    # ---------------------------------
-    # Apply classification AFTER UI
-    # ---------------------------------
-
     if (
         st.session_state.selected_classification
         and query.get("intent") != "school_summary"
@@ -216,15 +211,7 @@ def render_home_page():
     ):
         query["filters"].pop("classification", None)
 
-    # ---------------------------------
-    # Execute query
-    # ---------------------------------
-
     result, explanation = execute_query(query, team_df, rec_df)
-
-    # ---------------------------------
-    # Render result
-    # ---------------------------------
 
     card = result_to_card(
         result=result,
@@ -250,17 +237,28 @@ def render_home_page():
     else:
         st.warning("I don’t see a matching record for that question.")
 
-    # ---------------------------------
-    # Explanation
-    # ---------------------------------
-
     with st.expander("How this answer was found"):
         render_explanation(explanation)
 
 
 def render_schools_page():
     st.subheader("Schools")
-    st.info("Select a school to view its profile. School selector coming next.")
+
+    school_options = schools_df["canonical_name"].tolist()
+
+    selected_school = st.selectbox(
+        "Select a school",
+        options=school_options,
+        index=None,
+        placeholder="Choose a school",
+        key="selected_school",
+    )
+
+    if not selected_school:
+        st.info("Choose a school to view its profile.")
+        return
+
+    st.success(f"Selected school: {selected_school}")
 
 
 # ---------------------------------
