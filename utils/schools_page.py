@@ -91,9 +91,15 @@ def render_school_identity_card(summary):
     if pd.isna(primary_color) or not str(primary_color).strip():
         primary_color = "#1569B3"
     primary_color = str(primary_color).strip()
-
     if not primary_color.startswith("#"):
         primary_color = f"#{primary_color}"
+
+    secondary_color = school.get("secondary_color", "#ffffff")
+    if pd.isna(secondary_color) or not str(secondary_color).strip():
+        secondary_color = "#ffffff"
+    secondary_color = str(secondary_color).strip()
+    if not secondary_color.startswith("#"):
+        secondary_color = f"#{secondary_color}"
 
     nickname_text = ""
     if pd.notna(nickname) and str(nickname).strip():
@@ -109,9 +115,7 @@ def render_school_identity_card(summary):
             border: 1px solid rgba(49, 51, 63, 0.16);
             border-radius: 0.75rem;
             padding: 1.05rem 1.2rem 0.95rem 1.2rem;
-            background:
-    radial-gradient(circle at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.88) 22%, rgba(255,255,255,0) 52%),
-    radial-gradient(circle at center, {primary_color} 0%, {primary_color} 100%);
+            background: linear-gradient(to right, {primary_color} 0%, {primary_color} 35%, {secondary_color} 100%);
             margin-bottom: 0.55rem;
         ">
             <div style="
