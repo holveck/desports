@@ -1,4 +1,15 @@
+import html
 from streamlit.components.v1 import html as raw_html
+
+
+# --------------------------------------------------
+# Text helpers
+# --------------------------------------------------
+
+def safe_text(value):
+    if value is None:
+        return ""
+    return html.escape(str(value), quote=True)
 
 
 # --------------------------------------------------
@@ -40,11 +51,29 @@ def render_card(card):
 def render_recall_card(card):
     primary_color, secondary_color = get_colors(card)
 
+    title = safe_text(card.get("title", ""))
+    primary_value = safe_text(card.get("primary_value", ""))
+    secondary_value = safe_text(card.get("secondary_value"))
+    context = safe_text(card.get("context"))
+
     secondary_html = ""
-    if card.get("secondary_value"):
+    if secondary_value:
         secondary_html = f"""
         <div style="font-size:1rem;color:#333;margin-bottom:10px;">
-            {card.get("secondary_value")}
+            {secondary_value}
+        </div>
+        """
+
+    context_html = ""
+    if context:
+        context_html = f"""
+        <div style="
+            border-top:1px solid {secondary_color};
+            padding-top:8px;
+            font-size:0.85rem;
+            color:#666;
+        ">
+            {context}
         </div>
         """
 
@@ -62,23 +91,16 @@ def render_recall_card(card):
         ">
 
             <div style="font-size:0.95rem;color:#555;margin-bottom:6px;">
-                {card.get("title","")}
+                {title}
             </div>
 
             <div style="font-size:1.6rem;font-weight:700;margin-bottom:8px;">
-                {card.get("primary_value","")}
+                {primary_value}
             </div>
 
             {secondary_html}
 
-            <div style="
-                border-top:1px solid {secondary_color};
-                padding-top:8px;
-                font-size:0.85rem;
-                color:#666;
-            ">
-                {card.get("context","")}
-            </div>
+            {context_html}
 
         </div>
         """,
@@ -93,8 +115,13 @@ def render_recall_card(card):
 def render_ranking_card(card):
     primary_color, secondary_color = get_colors(card)
 
+    title = safe_text(card.get("title", ""))
+    primary_value = safe_text(card.get("primary_value", ""))
+    secondary_value = safe_text(card.get("secondary_value"))
+    context = safe_text(card.get("context"))
+
     secondary_html = ""
-    if card.get("secondary_value"):
+    if secondary_value:
         secondary_html = f"""
         <div style="
             font-size:1.25rem;
@@ -102,7 +129,20 @@ def render_ranking_card(card):
             color:{primary_color};
             margin-bottom:10px;
         ">
-            {card.get("secondary_value")}
+            {secondary_value}
+        </div>
+        """
+
+    context_html = ""
+    if context:
+        context_html = f"""
+        <div style="
+            border-top:1px solid {secondary_color};
+            padding-top:8px;
+            font-size:0.85rem;
+            color:#666;
+        ">
+            {context}
         </div>
         """
 
@@ -120,23 +160,16 @@ def render_ranking_card(card):
         ">
 
             <div style="font-size:0.95rem;color:#555;margin-bottom:8px;">
-                {card.get("title","")}
+                {title}
             </div>
 
             <div style="font-size:1.5rem;font-weight:700;margin-bottom:4px;">
-                {card.get("primary_value","")}
+                {primary_value}
             </div>
 
             {secondary_html}
 
-            <div style="
-                border-top:1px solid {secondary_color};
-                padding-top:8px;
-                font-size:0.85rem;
-                color:#666;
-            ">
-                {card.get("context","")}
-            </div>
+            {context_html}
 
         </div>
         """,
