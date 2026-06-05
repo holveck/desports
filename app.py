@@ -147,6 +147,25 @@ if query is None:
 
 query = normalize_query(query)
 
+if "last_query_scope" not in st.session_state:
+    st.session_state.last_query_scope = None
+
+
+def reset_classification_state():
+    st.session_state.selected_classification = None
+    st.session_state.combine_classifications = False
+
+
+def get_query_scope_signature(query):
+    filters = query.get("filters", {})
+
+    return (
+        query.get("intent"),
+        filters.get("sport"),
+        filters.get("year"),
+        filters.get("since_year"),
+        filters.get("school_id"),
+    )
 
 # ---------------------------------
 # Ranking default (combined totals ONCE)
