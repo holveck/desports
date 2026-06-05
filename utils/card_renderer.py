@@ -32,6 +32,24 @@ def safe_color(value, default):
     return default
 
 
+def hex_to_rgba(hex_color, alpha):
+    hex_color = hex_color.strip()
+
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", hex_color):
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+        return f"rgba({r}, {g}, {b}, {alpha})"
+
+    if re.fullmatch(r"#[0-9a-fA-F]{8}", hex_color):
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+        return f"rgba({r}, {g}, {b}, {alpha})"
+
+    return f"rgba(68, 68, 68, {alpha})"
+
+
 def get_colors(card):
     primary = safe_color(
         card.get("primary_color") or card.get("accent_color"),
@@ -39,7 +57,7 @@ def get_colors(card):
     )
 
     if re.fullmatch(r"#[0-9a-fA-F]{6}", primary):
-        secondary = primary + "33"
+        secondary = primary + "22"
     elif re.fullmatch(r"#[0-9a-fA-F]{8}", primary):
         secondary = primary
     else:
@@ -73,13 +91,44 @@ def render_base_card(
     primary_value = safe_text(card.get("primary_value", ""))
     context = safe_text(card.get("context"))
 
+    accent_tint = hex_to_rgba(primary_color, 0.10)
+    accent_text = hex_to_rgba(primary_color, 0.95)
+
+    header_accent_html = f"""
+    <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin-bottom:10px;
+        font-size:0.78rem;
+        letter-spacing:0.02em;
+        color:{accent_text};
+        font-family:{SANS_STACK};
+        font-weight:600;
+        white-space:normal;
+        overflow-wrap:anywhere;
+        word-break:break-word;
+    ">
+        <span style="
+            display:inline-block;
+            width:8px;
+            height:8px;
+            min-width:8px;
+            border-radius:999px;
+            background:{primary_color};
+        "></span>
+        <span>Delaware High School Sports</span>
+    </div>
+    """
+
     context_html = ""
     if context:
         context_html = f"""
         <div style="
-            border-top:1px solid {secondary_color};
-            padding-top:8px;
-            font-size:0.85rem;
+            margin-top:12px;
+            padding-top:10px;
+            border-top:1px solid rgba(17, 17, 17, 0.08);
+            font-size:0.84rem;
             line-height:1.4;
             color:#666;
             font-family:{SANS_STACK};
@@ -87,7 +136,15 @@ def render_base_card(
             overflow-wrap:anywhere;
             word-break:break-word;
         ">
-            {context}
+            <span style="
+                display:inline-block;
+                padding:4px 8px;
+                border-radius:999px;
+                background:{accent_tint};
+                color:{accent_text};
+            ">
+                {context}
+            </span>
         </div>
         """
 
@@ -97,13 +154,17 @@ def render_base_card(
             max-width:380px;
             padding:20px;
             margin-bottom:6px;
-            background:#ffffff;
-            border-left:8px solid {primary_color};
-            border-radius:10px;
-            box-shadow:0 1px 2px rgba(0,0,0,0.05);
+            background:#fcfcfb;
+            border:1px solid rgba(17, 17, 17, 0.08);
+            border-radius:14px;
+            box-shadow:
+                0 1px 2px rgba(17, 17, 17, 0.03),
+                0 8px 24px rgba(17, 17, 17, 0.04);
             font-family:{SERIF_STACK};
             color:#111;
         ">
+
+            {header_accent_html}
 
             <div style="
                 font-size:0.95rem;
@@ -201,7 +262,7 @@ def render_ranking_card(card):
     if secondary_value:
         secondary_html = f"""
         <div style="
-            font-size:1.25rem;
+            font-size:1.18rem;
             font-weight:600;
             line-height:1.3;
             color:{primary_color};
