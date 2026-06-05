@@ -136,8 +136,8 @@ def build_team_result_card(result, school_styles, school_name_lookup):
     )
 
     story_link = clean_text(row.get("link"))
-    if link:
-        card["secondary_link"] = link
+    if story_link:
+        card["secondary_link"] = story_link
 
     card["variant"] = "recall"
 
