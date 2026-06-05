@@ -1,4 +1,5 @@
 import html
+import re
 from streamlit.components.v1 import html as raw_html
 
 
@@ -16,15 +17,31 @@ def safe_text(value):
 # Color helpers
 # --------------------------------------------------
 
+def safe_color(value, default):
+    if not isinstance(value, str):
+        return default
+
+    value = value.strip()
+
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+        return value
+
+    if re.fullmatch(r"#[0-9a-fA-F]{8}", value):
+        return value
+
+    return default
+
+
 def get_colors(card):
-    primary = (
-        card.get("primary_color")
-        or card.get("accent_color")
-        or "#444444"
+    primary = safe_color(
+        card.get("primary_color") or card.get("accent_color"),
+        "#444444",
     )
 
-    if isinstance(primary, str) and primary.startswith("#"):
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", primary):
         secondary = primary + "33"
+    elif re.fullmatch(r"#[0-9a-fA-F]{8}", primary):
+        secondary = primary
     else:
         secondary = "#dddddd"
 
@@ -45,7 +62,7 @@ def render_card(card):
 
 
 # --------------------------------------------------
-# Recall / Event Card (Phase 1)
+# Recall / Event Card
 # --------------------------------------------------
 
 def render_recall_card(card):
@@ -109,7 +126,7 @@ def render_recall_card(card):
 
 
 # --------------------------------------------------
-# Ranking Card (Phase 1)
+# Ranking Card
 # --------------------------------------------------
 
 def render_ranking_card(card):
