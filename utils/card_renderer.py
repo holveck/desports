@@ -32,24 +32,6 @@ def safe_color(value, default):
     return default
 
 
-def hex_to_rgba(hex_color, alpha):
-    hex_color = hex_color.strip()
-
-    if re.fullmatch(r"#[0-9a-fA-F]{6}", hex_color):
-        r = int(hex_color[1:3], 16)
-        g = int(hex_color[3:5], 16)
-        b = int(hex_color[5:7], 16)
-        return f"rgba({r}, {g}, {b}, {alpha})"
-
-    if re.fullmatch(r"#[0-9a-fA-F]{8}", hex_color):
-        r = int(hex_color[1:3], 16)
-        g = int(hex_color[3:5], 16)
-        b = int(hex_color[5:7], 16)
-        return f"rgba({r}, {g}, {b}, {alpha})"
-
-    return f"rgba(68, 68, 68, {alpha})"
-
-
 def get_colors(card):
     primary = safe_color(
         card.get("primary_color") or card.get("accent_color"),
@@ -84,42 +66,13 @@ def render_base_card(
     primary_font_size,
     primary_margin_bottom,
     secondary_html,
+    primary_text_color="#111",
 ):
     primary_color, secondary_color = get_colors(card)
 
     title = safe_text(card.get("title", ""))
     primary_value = safe_text(card.get("primary_value", ""))
     context = safe_text(card.get("context"))
-
-    accent_tint = hex_to_rgba(primary_color, 0.10)
-    accent_text = hex_to_rgba(primary_color, 0.95)
-
-    header_accent_html = f"""
-    <div style="
-        display:flex;
-        align-items:center;
-        gap:8px;
-        margin-bottom:10px;
-        font-size:0.78rem;
-        letter-spacing:0.02em;
-        color:{accent_text};
-        font-family:{SANS_STACK};
-        font-weight:600;
-        white-space:normal;
-        overflow-wrap:anywhere;
-        word-break:break-word;
-    ">
-        <span style="
-            display:inline-block;
-            width:8px;
-            height:8px;
-            min-width:8px;
-            border-radius:999px;
-            background:{primary_color};
-        "></span>
-        <span>Delaware High School Sports</span>
-    </div>
-    """
 
     context_html = ""
     if context:
@@ -136,15 +89,7 @@ def render_base_card(
             overflow-wrap:anywhere;
             word-break:break-word;
         ">
-            <span style="
-                display:inline-block;
-                padding:4px 8px;
-                border-radius:999px;
-                background:{accent_tint};
-                color:{accent_text};
-            ">
-                {context}
-            </span>
+            {context}
         </div>
         """
 
@@ -164,8 +109,6 @@ def render_base_card(
             color:#111;
         ">
 
-            {header_accent_html}
-
             <div style="
                 font-size:0.95rem;
                 line-height:1.35;
@@ -183,6 +126,7 @@ def render_base_card(
                 font-size:{primary_font_size};
                 font-weight:700;
                 line-height:1.15;
+                color:{primary_text_color};
                 font-family:{SANS_STACK};
                 margin-bottom:{primary_margin_bottom};
                 white-space:normal;
@@ -222,6 +166,7 @@ def render_card(card):
 # --------------------------------------------------
 
 def render_recall_card(card):
+    primary_color, _ = get_colors(card)
     secondary_value = safe_text(card.get("secondary_value"))
 
     secondary_html = ""
@@ -247,6 +192,7 @@ def render_recall_card(card):
         primary_font_size="1.6rem",
         primary_margin_bottom="8px",
         secondary_html=secondary_html,
+        primary_text_color=primary_color,
     )
 
 
@@ -282,6 +228,7 @@ def render_ranking_card(card):
         primary_font_size="1.5rem",
         primary_margin_bottom="4px",
         secondary_html=secondary_html,
+        primary_text_color="#111",
     )
 
 
@@ -315,4 +262,5 @@ def render_school_summary_card(card):
         primary_font_size="1.55rem",
         primary_margin_bottom="8px",
         secondary_html=secondary_html,
+        primary_text_color="#111",
     )
