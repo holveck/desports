@@ -2,10 +2,10 @@
 School lookup and extraction utilities.
 
 This module:
-- Loads canonical school names and aliases from data/schools.csv
+- Loads canonical school names, aliases, and styles from data/schools.csv
 - Normalizes text for safe matching
 - Extracts school_id from natural-language questions
-- Avoids false positives by using word-boundary and longest-match logic
+- Exposes shared lookup maps for canonical names, aliases, and styles
 """
 
 import pandas as pd
@@ -30,26 +30,45 @@ def normalize(text):
 
 
 # --------------------------------------------------
+# Base data loading
+# --------------------------------------------------
+
+@lru_cache(maxsize=1)
+def load_schools_df():
+    """
+    Load schools.csv once and return the dataframe.
+    """
+    return pd.read_csv("data/schools.csv")
+
+
+# --------------------------------------------------
 # School lookup loading
 # --------------------------------------------------
 
 @lru_cache(maxsize=1)
 def load_school_lookup():
     """
-    Load schools.csv and return a dict mapping
-    normalized alias -> school record.
+    Return a dict mapping normalized alias -> school record.
 
     Each record contains:
     - school_id
     - canonical_name
+    - primary_color
+    - secondary_color
     """
-    df = pd.read_csv("data/schools.csv")
-
+    df = load_schools_df()
     lookup = {}
 
     for _, row in df.iterrows():
         school_id = row["school_id"]
         canonical = row["canonical_name"]
+
+        record = {
+            "school_id": school_id,
+            "canonical_name": canonical,
+            "primary_color": row.get("primary_color"),
+            "secondary_color": row.get("secondary_color"),
+        }
 
         aliases = [canonical]
 
@@ -59,17 +78,10 @@ def load_school_lookup():
             )
 
         for name in aliases:
-            key = normalize(name)
-            lookup[key] = {
-                "school_id": school_id,
-                "canonical_name": canonical,
-            }
+            lookup[normalize(name)] = record
 
     return lookup
 
-# --------------------------------------------------
-# Lookup helpers
-# --------------------------------------------------
 
 @lru_cache(maxsize=1)
 def load_school_lookup_by_id():
@@ -77,7 +89,6 @@ def load_school_lookup_by_id():
     Return a dict mapping school_id -> school record.
     """
     lookup = load_school_lookup()
-
     by_id = {}
 
     for record in lookup.values():
@@ -87,6 +98,37 @@ def load_school_lookup_by_id():
 
     return by_id
 
+
+@lru_cache(maxsize=1)
+def load_school_name_lookup():
+    """
+    Return a dict mapping lowercase canonical school name -> school_id.
+    """
+    df = load_schools_df()
+    return {
+        str(row["canonical_name"]).lower().strip(): row["school_id"]
+        for _, row in df.iterrows()
+    }
+
+
+@lru_cache(maxsize=1)
+def load_school_styles():
+    """
+    Return a dict mapping school_id -> style info.
+    """
+    df = load_schools_df()
+    return {
+        row["school_id"]: {
+            "primary_color": row.get("primary_color"),
+            "secondary_color": row.get("secondary_color"),
+        }
+        for _, row in df.iterrows()
+    }
+
+
+# --------------------------------------------------
+# Lookup helpers
+# --------------------------------------------------
 
 def get_school_by_id(school_id):
     """
@@ -109,6 +151,20 @@ def get_canonical_school_name(school_id):
     return record.get("canonical_name")
 
 
+def get_school_styles():
+    """
+    Return school_id -> style mapping.
+    """
+    return load_school_styles()
+
+
+def get_school_name_lookup():
+    """
+    Return canonical school name -> school_id mapping.
+    """
+    return load_school_name_lookup()
+
+
 # --------------------------------------------------
 # School extraction
 # --------------------------------------------------
@@ -128,11 +184,9 @@ def extract_school(text):
     matches = []
 
     for alias, record in lookup.items():
-        # Ignore extremely short aliases (e.g., "cr", "hs", "st")
         if len(alias) < 4:
             continue
 
-        # Match alias as a whole word or phrase
         pattern = r"\b" + re.escape(alias) + r"\b"
 
         if re.search(pattern, normalized_text):
@@ -141,7 +195,5 @@ def extract_school(text):
     if not matches:
         return None
 
-    # Prefer the longest (most specific) alias
     matches.sort(key=lambda x: len(x[0]), reverse=True)
-
     return matches[0][1]["school_id"]
