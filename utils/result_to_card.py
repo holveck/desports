@@ -196,6 +196,43 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
         card["context"] = filters.get("classification", "All Divisions (Combined)")
         return card
 
+        # --------------------------------------------------
+    # SCHOOL SUMMARY
+    # --------------------------------------------------
+    if intent == "school_summary" and isinstance(result, pd.DataFrame):
+        if result.empty:
+            return None
+
+        school_id = filters.get("school_id")
+        school_name = None
+
+        if school_id:
+            for record in school_name_lookup.values():
+                if record == school_id:
+                    school_name = school_id
+                    break
+
+        if not school_name:
+            champ_name = clean_text(result.iloc[0]["champion"])
+            school_name = champ_name
+            school_id = school_name_lookup.get(normalize_school_name(champ_name))
+
+        title = format_school_summary_title(school_name, filters)
+        total_titles = len(result)
+
+        card = build_card_descriptor(
+            title=title,
+            primary_value=str(total_titles),
+            secondary_value="state championships",
+            school_id=school_id,
+            details_rows=result,
+            school_styles=school_styles,
+        )
+
+        card["variant"] = "school_summary"
+        card["context"] = filters.get("classification", DEFAULT_RANKING_CONTEXT)
+        return card
+
     # --------------------------------------------------
     # LEGACY NUMERIC AGGREGATION
     # --------------------------------------------------
