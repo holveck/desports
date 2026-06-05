@@ -270,34 +270,13 @@ def build_recent_result_text(row):
 
 def render_recent_championships(team_titles_df):
     st.markdown(
-        f"""
-        <div style="
-            font-family: {FONT_STACK};
-            font-size: 1.08rem;
-            line-height: 1.15;
-            font-weight: 700;
-            color: #1f2937;
-            margin: 0.1rem 0 0.45rem 0;
-        ">Recent Championships</div>
-        """,
+        f'<div style="font-family:{FONT_STACK};font-size:1.08rem;line-height:1.15;font-weight:700;color:#1f2937;margin:0.1rem 0 0.45rem 0;">Recent Championships</div>',
         unsafe_allow_html=True,
     )
 
     if team_titles_df.empty:
         st.markdown(
-            f"""
-            <div style="
-                border: 1px solid rgba(49, 51, 63, 0.14);
-                border-radius: 0.75rem;
-                padding: 0.7rem 0.95rem;
-                margin-bottom: 0.35rem;
-                background: #ffffff;
-                font-family: {FONT_STACK};
-                font-size: 0.95rem;
-                line-height: 1.15;
-                color: rgba(31, 41, 55, 0.72);
-            ">No recent championships available.</div>
-            """,
+            f'<div style="border:1px solid rgba(49,51,63,0.14);border-radius:0.75rem;padding:0.7rem 0.95rem;margin-bottom:0.35rem;background:#ffffff;font-family:{FONT_STACK};font-size:0.95rem;line-height:1.15;color:rgba(31,41,55,0.72);">No recent championships available.</div>',
             unsafe_allow_html=True,
         )
         return
@@ -310,12 +289,7 @@ def render_recent_championships(team_titles_df):
 
     recent_df = recent_df.head(3)
 
-    st.markdown(
-        """
-        <div style="border: 1px solid rgba(49, 51, 63, 0.14); border-radius: 0.75rem; padding: 0.5rem 0.95rem; margin-bottom: 0.3rem; background: #ffffff;">
-        """,
-        unsafe_allow_html=True,
-    )
+    row_blocks = []
 
     for _, row in recent_df.iterrows():
         year_text = ""
@@ -336,22 +310,26 @@ def render_recent_championships(team_titles_df):
         if story_url:
             result_html = (
                 f'<a href="{html.escape(story_url)}" target="_blank" rel="noopener noreferrer" '
-                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">'
-                f'{result_label_html}</a>'
+                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">{result_label_html}</a>'
             )
         else:
             result_html = f'<span style="color:#1f2937;">{result_label_html}</span>'
 
-        row_html = (
+        row_blocks.append(
             f'<div style="display:grid;grid-template-columns:3.7rem 10.75rem 1fr;gap:0.45rem;align-items:start;padding:0.16rem 0;">'
             f'<div style="font-family:{FONT_STACK};font-size:0.95rem;line-height:1.15;font-weight:600;color:#1f2937;white-space:nowrap;">{year_html}</div>'
             f'<div style="font-family:{FONT_STACK};font-size:0.95rem;line-height:1.15;font-weight:600;color:#1f2937;">{sport_html}</div>'
             f'<div style="font-family:{FONT_STACK};font-size:0.95rem;line-height:1.15;font-weight:400;color:#1f2937;">{result_html}</div>'
             f'</div>'
         )
-        st.markdown(row_html, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    box_html = (
+        f'<div style="border:1px solid rgba(49,51,63,0.14);border-radius:0.75rem;padding:0.5rem 0.95rem;margin-bottom:0.3rem;background:#ffffff;">'
+        f'{"".join(row_blocks)}'
+        f'</div>'
+    )
+
+    st.markdown(box_html, unsafe_allow_html=True)
 
     if st.button("View All", key="view_all_championships", use_container_width=False):
         st.session_state["show_all_titles_expanded"] = True
