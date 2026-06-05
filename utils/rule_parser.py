@@ -8,6 +8,19 @@ import re
 from utils.sport_config import SPORT_CONFIG
 from utils.schools import extract_school
 
+RANKING_PATTERNS = [
+    r"\bmost\b",
+    r"\bfewest\b",
+    r"\bhighest\b",
+    r"\blowest\b",
+    r"\btop\b",
+    r"\bbest\b",
+]
+
+
+def has_phrase(text, phrase):
+    pattern = r"\b" + re.escape(phrase.lower()) + r"\b"
+    return re.search(pattern, text) is not None
 
 # --------------------------------------------------
 # Text normalization
@@ -36,8 +49,11 @@ def remove_noise(text):
         "has",
         "have",
     ]
-    for word in noise_words:
-        text = text.replace(word, "")
+
+    for word in sorted(noise_words, key=len, reverse=True):
+        pattern = r"\b" + re.escape(word) + r"\b"
+        text = re.sub(pattern, " ", text)
+
     return normalize(text)
 
 
@@ -60,18 +76,18 @@ def extract_since_year(text):
 
 
 def extract_gender(text):
-    if "girls" in text:
+    if has_phrase(text, "girls"):
         return "girls"
-    if "boys" in text:
+    if has_phrase(text, "boys"):
         return "boys"
     return None
 
 
 def extract_sport(text):
-    for sport in SPORT_CONFIG.keys():
-        if sport in text:
-            return sport
-    return None
+    matches = [sport for sport in SPORT_CONFIG.keys() if has_phrase(text, sport)]
+    if not matches:
+        return None
+    return max(matches, key=len)
 
 
 def extract_classification(text):
@@ -91,10 +107,13 @@ def extract_classification(text):
 # --------------------------------------------------
 
 def detect_intent(text, school_id):
-    if "how many" in text and school_id:
+    if re.search(r"\bhow many\b", text) and school_id:
         return "school_summary"
-    if "most" in text:
-        return "ranking"
+
+    for pattern in RANKING_PATTERNS:
+        if re.search(pattern, text):
+            return "ranking"
+
     return "team_result"
 
 
