@@ -194,8 +194,7 @@ def result_to_card(result, explanation, query, school_styles, school_name_lookup
             card["tie_summary"] = leader_text
 
         card["variant"] = "ranking"
-        card["context"] = filters.get("classification", "All Divisions (Combined)")
-        return card
+        card["context"] = filters.get("classification", DEFAULT_RANKING_CONTEXT)
 
        # --------------------------------------------------
     # SCHOOL SUMMARY
