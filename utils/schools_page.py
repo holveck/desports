@@ -67,11 +67,12 @@ def render_school_selector(schools_df):
     )
 
     return st.selectbox(
-        "Select a school",
+        "",
         options=school_options,
         index=None,
         placeholder="Choose a school",
         key="selected_school",
+        label_visibility="collapsed",
     )
 
 
@@ -80,17 +81,13 @@ def render_school_identity_card(summary):
 
     school_name = school.get("canonical_name", "Unknown school")
     nickname = school.get("nickname", "")
-    city = school.get("city", "")
-    state = school.get("state", "")
-
-    location_bits = [str(x).strip() for x in [city, state] if pd.notna(x) and str(x).strip()]
-    location_line = ", ".join(location_bits)
+    location = school.get("location", "")
 
     sub_bits = []
     if pd.notna(nickname) and str(nickname).strip():
         sub_bits.append(str(nickname).strip())
-    if location_line:
-        sub_bits.append(location_line)
+    if pd.notna(location) and str(location).strip():
+        sub_bits.append(str(location).strip())
 
     sub_line = " • ".join(sub_bits)
 
@@ -99,14 +96,14 @@ def render_school_identity_card(summary):
         <div style="
             border: 1px solid rgba(49, 51, 63, 0.2);
             border-radius: 0.75rem;
-            padding: 1.1rem 1.25rem 1rem 1.25rem;
+            padding: 1.05rem 1.2rem 0.95rem 1.2rem;
             background: transparent;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.55rem;
         ">
             <div style="
                 font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 2rem;
-                line-height: 1.05;
+                line-height: 1.02;
                 font-weight: 700;
                 margin: 0;
                 padding: 0;
@@ -116,10 +113,10 @@ def render_school_identity_card(summary):
             <div style="
                 font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 0.95rem;
-                line-height: 1.2;
+                line-height: 1.15;
                 font-weight: 400;
                 color: rgba(49, 51, 63, 0.72);
-                margin-top: 0.25rem;
+                margin-top: 0.18rem;
             ">
                 {sub_line}
             </div>
@@ -129,21 +126,23 @@ def render_school_identity_card(summary):
     )
 
 
-def render_school_kpi_card(summary):
+def render_school_kpi(summary):
     total_titles = summary["total_titles"]
 
     st.markdown(
         f"""
         <div style="
-            border: 1px solid rgba(49, 51, 63, 0.2);
-            border-radius: 0.75rem;
-            padding: 1.1rem 1.25rem 1rem 1.25rem;
-            background: transparent;
-            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.5rem 0 1.1rem 0;
         ">
             <div style="
                 display: flex;
                 align-items: center;
+                justify-content: center;
                 gap: 0.55rem;
                 margin: 0;
                 padding: 0;
@@ -154,7 +153,7 @@ def render_school_kpi_card(summary):
                 ">🏆</div>
                 <div style="
                     font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-                    font-size: 2rem;
+                    font-size: 2.35rem;
                     line-height: 1;
                     font-weight: 700;
                     margin: 0;
@@ -169,7 +168,7 @@ def render_school_kpi_card(summary):
                 line-height: 1.2;
                 font-weight: 400;
                 color: rgba(49, 51, 63, 0.72);
-                margin-top: 0.45rem;
+                margin-top: 0.4rem;
             ">
                 State Championships
             </div>
@@ -220,8 +219,6 @@ def render_all_team_titles(team_titles_df):
 
 
 def render_school_page(schools_df, team_df):
-    st.subheader("Schools")
-
     selected_school = render_school_selector(schools_df)
 
     if not selected_school:
@@ -237,6 +234,6 @@ def render_school_page(schools_df, team_df):
     summary = build_school_summary(school_record, team_titles_df)
 
     render_school_identity_card(summary)
-    render_school_kpi_card(summary)
+    render_school_kpi(summary)
     render_recent_championships_placeholder()
     render_all_team_titles(team_titles_df)
