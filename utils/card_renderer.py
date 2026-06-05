@@ -52,8 +52,8 @@ def get_colors(card):
 # Font stacks
 # --------------------------------------------------
 
-SANS_STACK = "'Unify Sans', 'Helvetica Neue', 'Arial Nova', Helvetica, Arial, sans-serif"
-SERIF_STACK = "'Georgia Pro', Georgia, 'Droid Serif', serif"
+SANS_STACK = "'Helvetica Neue', 'Arial Nova', Helvetica, Arial, sans-serif"
+SERIF_STACK = "Georgia, 'Droid Serif', serif"
 
 
 # --------------------------------------------------
