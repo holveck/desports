@@ -1,6 +1,10 @@
+import html
 import pandas as pd
 import streamlit as st
 import string
+
+
+FONT_STACK = "'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
 
 
 def normalize_school_name(value):
@@ -109,7 +113,7 @@ def render_school_identity_card(summary):
             margin-bottom: 0.55rem;
         ">
             <div style="
-                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-family: {FONT_STACK};
                 font-size: 2rem;
                 line-height: 1.02;
                 font-weight: 700;
@@ -117,32 +121,33 @@ def render_school_identity_card(summary):
                 padding: 0;
                 color: #1f2937;
             ">
-                {school_name}
+                {html.escape(str(school_name))}
             </div>
             <div style="
-                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-family: {FONT_STACK};
                 font-size: 0.95rem;
                 line-height: 1.1;
                 font-weight: 400;
                 color: rgba(31, 41, 55, 0.8);
                 margin-top: 0.18rem;
             ">
-                {nickname_text}
+                {html.escape(nickname_text)}
             </div>
             <div style="
-                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-family: {FONT_STACK};
                 font-size: 0.9rem;
                 line-height: 1.1;
                 font-weight: 400;
                 color: rgba(31, 41, 55, 0.72);
                 margin-top: 0.08rem;
             ">
-                {location_text}
+                {html.escape(location_text)}
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
 
 def render_school_kpi(summary):
     total_titles = summary["total_titles"]
@@ -170,18 +175,19 @@ def render_school_kpi(summary):
                     line-height: 1;
                 ">🏆</div>
                 <div style="
-                    font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                    font-family: {FONT_STACK};
                     font-size: 2.35rem;
                     line-height: 1;
                     font-weight: 700;
                     margin: 0;
                     padding: 0;
+                    color: #1f2937;
                 ">
                     {total_titles}
                 </div>
             </div>
             <div style="
-                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-family: {FONT_STACK};
                 font-size: 0.95rem;
                 line-height: 1.2;
                 font-weight: 400;
@@ -196,13 +202,207 @@ def render_school_kpi(summary):
     )
 
 
-def render_recent_championships_placeholder():
-    st.markdown("### Recent championships")
-    st.info("Recent championships section will be restyled next.")
+def format_sport_label(row):
+    sport = str(row.get("sport", "")).strip()
+    gender = str(row.get("gender", "")).strip().lower()
+
+    if not sport:
+        return ""
+
+    multi_gender_sports = {
+        "lacrosse",
+        "soccer",
+        "basketball",
+        "cross country",
+        "swimming",
+        "indoor track",
+        "outdoor track",
+        "track",
+        "tennis",
+        "volleyball",
+        "wrestling",
+    }
+
+    if gender in {"girls", "boys"} and sport.lower() in multi_gender_sports:
+        return f"{gender.title()} {sport}"
+
+    return sport
+
+
+def format_score_text(row):
+    champion_score = row.get("champion_score", "")
+    runner_up_score = row.get("runner_up_score", "")
+
+    if (
+        pd.notna(champion_score)
+        and str(champion_score).strip()
+        and pd.notna(runner_up_score)
+        and str(runner_up_score).strip()
+    ):
+        return f"{str(champion_score).strip()}-{str(runner_up_score).strip()}"
+
+    score_note = row.get("score_note", "")
+    if pd.notna(score_note) and str(score_note).strip():
+        return str(score_note).strip()
+
+    return ""
+
+
+def get_story_url(row):
+    if "link" in row.index and pd.notna(row["link"]) and str(row["link"]).strip():
+        return str(row["link"]).strip()
+    return ""
+
+
+def build_recent_result_text(row):
+    runner_up = str(row.get("runner_up", "")).strip()
+    score_text = format_score_text(row)
+
+    parts = ["Defeated"]
+    if runner_up:
+        parts.append(runner_up)
+    if score_text:
+        parts.append(score_text)
+
+    return " ".join(parts).strip()
+
+
+def render_recent_championships(team_titles_df):
+    st.markdown(
+        f"""
+        <div style="
+            font-family: {FONT_STACK};
+            font-size: 1.08rem;
+            line-height: 1.15;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0.1rem 0 0.45rem 0;
+        ">
+            Recent Championships
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if team_titles_df.empty:
+        st.markdown(
+            f"""
+            <div style="
+                border: 1px solid rgba(49, 51, 63, 0.14);
+                border-radius: 0.75rem;
+                padding: 0.7rem 0.95rem;
+                margin-bottom: 0.35rem;
+                background: #ffffff;
+                font-family: {FONT_STACK};
+                font-size: 0.95rem;
+                line-height: 1.15;
+                color: rgba(31, 41, 55, 0.72);
+            ">
+                No recent championships available.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    recent_df = team_titles_df.copy()
+
+    if "year" in recent_df.columns:
+        recent_df = recent_df.sort_values("year", ascending=False)
+
+    recent_df = recent_df.head(3)
+
+    rows_html = []
+
+    for _, row in recent_df.iterrows():
+        year_text = ""
+        if "year" in row.index and pd.notna(row["year"]):
+            try:
+                year_text = str(int(float(row["year"])))
+            except Exception:
+                year_text = str(row["year"]).strip()
+
+        sport_text = format_sport_label(row)
+        result_text = build_recent_result_text(row)
+        story_url = get_story_url(row)
+
+        year_html = html.escape(year_text)
+        sport_html = html.escape(sport_text)
+        result_label_html = html.escape(result_text)
+
+        if story_url:
+            result_html = (
+                f'<a href="{html.escape(story_url)}" target="_blank" rel="noopener noreferrer" '
+                f'style="color: #1f2937; text-decoration: underline; text-underline-offset: 2px;">'
+                f'{result_label_html}</a>'
+            )
+        else:
+            result_html = f'<span style="color: #1f2937;">{result_label_html}</span>'
+
+        rows_html.append(
+            f"""
+            <div style="
+                display: grid;
+                grid-template-columns: 3.7rem 10.75rem 1fr;
+                gap: 0.45rem;
+                align-items: start;
+                padding: 0.16rem 0;
+            ">
+                <div style="
+                    font-family: {FONT_STACK};
+                    font-size: 0.95rem;
+                    line-height: 1.15;
+                    font-weight: 600;
+                    color: #1f2937;
+                    white-space: nowrap;
+                ">
+                    {year_html}
+                </div>
+                <div style="
+                    font-family: {FONT_STACK};
+                    font-size: 0.95rem;
+                    line-height: 1.15;
+                    font-weight: 600;
+                    color: #1f2937;
+                ">
+                    {sport_html}
+                </div>
+                <div style="
+                    font-family: {FONT_STACK};
+                    font-size: 0.95rem;
+                    line-height: 1.15;
+                    font-weight: 400;
+                    color: #1f2937;
+                ">
+                    {result_html}
+                </div>
+            </div>
+            """
+        )
+
+    st.markdown(
+        f"""
+        <div style="
+            border: 1px solid rgba(49, 51, 63, 0.14);
+            border-radius: 0.75rem;
+            padding: 0.65rem 0.95rem;
+            margin-bottom: 0.3rem;
+            background: #ffffff;
+        ">
+            {''.join(rows_html)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("View All", key="view_all_championships", use_container_width=False):
+        st.session_state["show_all_titles_expanded"] = True
 
 
 def render_all_team_titles(team_titles_df):
-    with st.expander("Show all team championship records"):
+    expanded = st.session_state.get("show_all_titles_expanded", False)
+
+    with st.expander("Show all team championship records", expanded=expanded):
         if team_titles_df.empty:
             st.info("No championship rows found.")
             return
@@ -211,6 +411,7 @@ def render_all_team_titles(team_titles_df):
             col for col in [
                 "year",
                 "sport",
+                "gender",
                 "classification",
                 "champion",
                 "runner_up",
@@ -219,6 +420,7 @@ def render_all_team_titles(team_titles_df):
                 "runner_up_score",
                 "score_note",
                 "venue",
+                "link",
             ]
             if col in team_titles_df.columns
         ]
@@ -251,7 +453,10 @@ def render_school_page(schools_df, team_df):
     team_titles_df = get_team_titles_for_school(team_df, selected_school)
     summary = build_school_summary(school_record, team_titles_df)
 
+    if "show_all_titles_expanded" not in st.session_state:
+        st.session_state["show_all_titles_expanded"] = False
+
     render_school_identity_card(summary)
     render_school_kpi(summary)
-    render_recent_championships_placeholder()
+    render_recent_championships(team_titles_df)
     render_all_team_titles(team_titles_df)
