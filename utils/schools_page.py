@@ -10,19 +10,40 @@ def get_school_record(schools_df, canonical_name):
 
 
 def get_team_titles_for_school(team_df, canonical_name):
+    st.write("Selected school:", canonical_name)
+    st.write("team_df columns:", list(team_df.columns))
+
+    possible_cols = [col for col in team_df.columns if "school" in col.lower() or "team" in col.lower()]
+    st.write("Possible school/team columns:", possible_cols)
+
+    for col in possible_cols:
+        sample_values = (
+            team_df[col]
+            .dropna()
+            .astype(str)
+            .drop_duplicates()
+            .sort_values()
+            .head(20)
+            .tolist()
+        )
+        st.write(f"Sample values from {col}:", sample_values)
+
     if "school_normalized" in team_df.columns:
         school_col = "school_normalized"
     elif "school" in team_df.columns:
         school_col = "school"
     else:
+        st.warning("No matching school column found in team_df.")
         return pd.DataFrame()
 
-    df = team_df[team_df[school_col] == canonical_name].copy()
+    df = team_df.copy()
+    df[school_col] = df[school_col].astype(str).str.strip()
+    canonical_name = str(canonical_name).strip()
 
-    if "year" in df.columns:
-        df["year"] = pd.to_numeric(df["year"], errors="coerce")
+    matches = df[df[school_col] == canonical_name].copy()
+    st.write("Exact match count:", len(matches))
 
-    return df
+    return matches
 
 
 def build_school_summary(school_record, team_titles_df):
