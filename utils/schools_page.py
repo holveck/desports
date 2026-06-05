@@ -1,5 +1,17 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+import string
+
+
+def normalize_school_name(value):
+    if pd.isna(value):
+        return ""
+
+    text = str(value).strip().lower()
+    text = text.replace("&", "and")
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = " ".join(text.split())
+    return text
 
 
 def get_school_record(schools_df, canonical_name):
@@ -10,40 +22,22 @@ def get_school_record(schools_df, canonical_name):
 
 
 def get_team_titles_for_school(team_df, canonical_name):
-    st.write("Selected school:", canonical_name)
-    st.write("team_df columns:", list(team_df.columns))
-
-    possible_cols = [col for col in team_df.columns if "school" in col.lower() or "team" in col.lower()]
-    st.write("Possible school/team columns:", possible_cols)
-
-    for col in possible_cols:
-        sample_values = (
-            team_df[col]
-            .dropna()
-            .astype(str)
-            .drop_duplicates()
-            .sort_values()
-            .head(20)
-            .tolist()
-        )
-        st.write(f"Sample values from {col}:", sample_values)
-
-    if "school_normalized" in team_df.columns:
-        school_col = "school_normalized"
-    elif "school" in team_df.columns:
-        school_col = "school"
-    else:
-        st.warning("No matching school column found in team_df.")
+    if "champion" not in team_df.columns:
         return pd.DataFrame()
 
     df = team_df.copy()
-    df[school_col] = df[school_col].astype(str).str.strip()
-    canonical_name = str(canonical_name).strip()
+    df["_champion_match"] = df["champion"].map(normalize_school_name)
+    selected_match = normalize_school_name(canonical_name)
 
-    matches = df[df[school_col] == canonical_name].copy()
-    st.write("Exact match count:", len(matches))
+    if "year" in df.columns:
+        df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-    return matches
+    matched = df[df["_champion_match"] == selected_match].copy()
+
+    if "_champion_match" in matched.columns:
+        matched = matched.drop(columns=["_champion_match"])
+
+    return matched
 
 
 def build_school_summary(school_record, team_titles_df):
@@ -51,7 +45,9 @@ def build_school_summary(school_record, team_titles_df):
 
     latest_title = None
     if not team_titles_df.empty and "year" in team_titles_df.columns:
-        latest_row = team_titles_df.sort_values("year", ascending=False).iloc[0]
+        latest_df = team_titles_df.sort_values("year", ascending=False)
+        latest_row = latest_df.iloc[0]
+
         latest_year = latest_row.get("year")
         latest_sport = latest_row.get("sport", "Unknown sport")
         latest_classification = latest_row.get("classification")
@@ -65,26 +61,27 @@ def build_school_summary(school_record, team_titles_df):
 
     recent_titles = pd.DataFrame()
     if not team_titles_df.empty:
-        sort_cols = [col for col in ["year", "sport"] if col in team_titles_df.columns]
-        if sort_cols:
-            recent_titles = (
-                team_titles_df.sort_values(sort_cols, ascending=[False, True][: len(sort_cols)])
-                .head(3)
-                .copy()
-            )
+        if "year" in team_titles_df.columns:
+            recent_titles = team_titles_df.sort_values("year", ascending=False).head(3).copy()
         else:
             recent_titles = team_titles_df.head(3).copy()
 
     return {
+        "school_record": school_record,
         "total_titles": total_titles,
         "latest_title": latest_title,
         "recent_titles": recent_titles,
-        "school_record": school_record,
     }
 
 
 def render_school_selector(schools_df):
-    school_options = schools_df["canonical_name"].dropna().tolist()
+    school_options = (
+        schools_df["canonical_name"]
+        .dropna()
+        .astype(str)
+        .sort_values()
+        .tolist()
+    )
 
     return st.selectbox(
         "Select a school",
@@ -98,7 +95,6 @@ def render_school_selector(schools_df):
 def render_school_profile_card(summary):
     school = summary["school_record"]
     latest_title = summary["latest_title"]
-    recent_titles = summary["recent_titles"]
 
     with st.container(border=True):
         st.subheader(school.get("canonical_name", "Unknown school"))
@@ -106,37 +102,80 @@ def render_school_profile_card(summary):
         context_bits = []
         for field in ["nickname", "city", "conference"]:
             value = school.get(field)
-            if value and str(value).strip():
+            if pd.notna(value) and str(value).strip():
                 context_bits.append(str(value).strip())
 
         if context_bits:
             st.caption(" • ".join(context_bits))
 
-        metric_col1, metric_col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-        with metric_col1:
+        with col1:
             st.metric("Team state titles", summary["total_titles"])
 
-        with metric_col2:
+        with col2:
             if latest_title:
                 latest_label = f'{latest_title["sport"]} ({latest_title["year"]})'
                 st.metric("Most recent title", latest_label)
             else:
                 st.metric("Most recent title", "None found")
 
+
+def render_recent_championships(summary):
     st.markdown("### Recent championships")
+
+    recent_titles = summary["recent_titles"]
 
     if recent_titles.empty:
         st.info("No team championship records found for this school.")
         return
 
-    display_cols = [col for col in ["year", "sport", "classification"] if col in recent_titles.columns]
+    display_cols = [
+        col for col in ["year", "sport", "classification"]
+        if col in recent_titles.columns
+    ]
+
     recent_display = recent_titles[display_cols].copy()
 
     if "year" in recent_display.columns:
         recent_display["year"] = recent_display["year"].astype("Int64")
 
     st.dataframe(recent_display, use_container_width=True, hide_index=True)
+
+
+def render_all_team_titles(team_titles_df):
+    with st.expander("Show all team championship records"):
+        if team_titles_df.empty:
+            st.info("No championship rows found.")
+            return
+
+        display_cols = [
+            col for col in [
+                "year",
+                "sport",
+                "classification",
+                "champion",
+                "runner_up",
+                "head_coach",
+                "champion_score",
+                "runner_up_score",
+                "score_note",
+                "venue",
+            ]
+            if col in team_titles_df.columns
+        ]
+
+        all_titles = team_titles_df.copy()
+
+        if "year" in all_titles.columns:
+            all_titles = all_titles.sort_values("year", ascending=False)
+            all_titles["year"] = all_titles["year"].astype("Int64")
+
+        st.dataframe(
+            all_titles[display_cols],
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
 def render_school_page(schools_df, team_df):
@@ -149,7 +188,6 @@ def render_school_page(schools_df, team_df):
         return
 
     school_record = get_school_record(schools_df, selected_school)
-
     if school_record is None:
         st.warning("That school could not be found.")
         return
@@ -158,25 +196,5 @@ def render_school_page(schools_df, team_df):
     summary = build_school_summary(school_record, team_titles_df)
 
     render_school_profile_card(summary)
-
-    with st.expander("Show all team championship records"):
-        if team_titles_df.empty:
-            st.info("No championship rows found.")
-        else:
-            display_cols = [
-                col for col in
-                ["year", "sport", "classification", "opponent", "score", "coach"]
-                if col in team_titles_df.columns
-            ]
-
-            all_titles = team_titles_df.copy()
-
-            if "year" in all_titles.columns:
-                all_titles = all_titles.sort_values("year", ascending=False)
-                all_titles["year"] = all_titles["year"].astype("Int64")
-
-            st.dataframe(
-                all_titles[display_cols],
-                use_container_width=True,
-                hide_index=True,
-            )
+    render_recent_championships(summary)
+    render_all_team_titles(team_titles_df)
