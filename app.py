@@ -9,6 +9,7 @@ from utils.query_normalizer import normalize_query
 from utils.result_to_card import result_to_card
 from utils.card_renderer import render_card
 from utils.explainer import render_explanation
+from utils.schools import get_school_name_lookup, get_school_styles
 
 
 # ---------------------------------
@@ -65,30 +66,9 @@ def load_data():
     return team_df, rec_df
 
 
-@st.cache_data
-def load_school_styles():
-    df = pd.read_csv("data/schools.csv")
-    return {
-        row["school_id"]: {
-            "primary_color": row.get("primary_color"),
-            "secondary_color": row.get("secondary_color"),
-        }
-        for _, row in df.iterrows()
-    }
-
-
-@st.cache_data
-def load_school_name_lookup():
-    df = pd.read_csv("data/schools.csv")
-    return {
-        row["canonical_name"].lower().strip(): row["school_id"]
-        for _, row in df.iterrows()
-    }
-
-
 team_df, rec_df = load_data()
-school_styles = load_school_styles()
-school_name_lookup = load_school_name_lookup()
+school_styles = get_school_styles()
+school_name_lookup = get_school_name_lookup()
 
 
 # ---------------------------------
@@ -100,11 +80,9 @@ def should_show_classification_chips(query, df):
     sport = filters.get("sport")
     year = filters.get("year")
 
-    # Never show chips for school summaries
     if query.get("intent") == "school_summary":
         return False
 
-    # Explicit classification suppresses chips
     if filters.get("classification") is not None:
         return False
 
@@ -163,7 +141,6 @@ query = normalize_query(query)
 
 # ---------------------------------
 # Ranking default (combined totals ONCE)
-# ✅ FIX: only default if classification not explicitly provided
 # ---------------------------------
 
 if (
@@ -225,7 +202,6 @@ if should_show_classification_chips(query, team_df):
 
 # ---------------------------------
 # Apply classification AFTER UI
-# ✅ FIX: do not override parser classification
 # ---------------------------------
 
 if (
@@ -263,10 +239,6 @@ card = result_to_card(
 
 if card:
     render_card(card)
-
-    # ---------------------------------
-    # Show details
-    # ---------------------------------
 
     if card.get("details_rows") is not None:
         with st.expander("Show details"):
