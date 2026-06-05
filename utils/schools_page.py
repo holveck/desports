@@ -83,6 +83,14 @@ def render_school_identity_card(summary):
     nickname = school.get("nickname", "")
     location = school.get("location", "")
 
+    primary_color = school.get("primary_color", "#1569B3")
+    if pd.isna(primary_color) or not str(primary_color).strip():
+        primary_color = "#1569B3"
+    primary_color = str(primary_color).strip()
+
+    if not primary_color.startswith("#"):
+        primary_color = f"#{primary_color}"
+
     sub_bits = []
     if pd.notna(nickname) and str(nickname).strip():
         sub_bits.append(str(nickname).strip())
@@ -94,10 +102,10 @@ def render_school_identity_card(summary):
     st.markdown(
         f"""
         <div style="
-            border: 1px solid rgba(49, 51, 63, 0.2);
+            border: 1px solid rgba(49, 51, 63, 0.16);
             border-radius: 0.75rem;
             padding: 1.05rem 1.2rem 0.95rem 1.2rem;
-            background: transparent;
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 42%, {primary_color} 100%);
             margin-bottom: 0.55rem;
         ">
             <div style="
@@ -107,6 +115,7 @@ def render_school_identity_card(summary):
                 font-weight: 700;
                 margin: 0;
                 padding: 0;
+                color: #1f2937;
             ">
                 {school_name}
             </div>
@@ -115,7 +124,7 @@ def render_school_identity_card(summary):
                 font-size: 0.95rem;
                 line-height: 1.15;
                 font-weight: 400;
-                color: rgba(49, 51, 63, 0.72);
+                color: rgba(31, 41, 55, 0.78);
                 margin-top: 0.18rem;
             ">
                 {sub_line}
@@ -124,7 +133,6 @@ def render_school_identity_card(summary):
         """,
         unsafe_allow_html=True,
     )
-
 
 def render_school_kpi(summary):
     total_titles = summary["total_titles"]
