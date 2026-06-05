@@ -168,9 +168,25 @@ def render_card(card):
 def render_recall_card(card):
     primary_color, _ = get_colors(card)
     secondary_value = safe_text(card.get("secondary_value"))
+    secondary_link = card.get("secondary_link")
 
     secondary_html = ""
     if secondary_value:
+        if isinstance(secondary_link, str) and secondary_link.strip():
+            safe_href = html.escape(secondary_link.strip(), quote=True)
+            secondary_content = f"""
+            <a href="{safe_href}" target="_blank" rel="noopener noreferrer" style="
+                color:inherit;
+                text-decoration:underline;
+                text-decoration-color:rgba(17, 17, 17, 0.28);
+                text-underline-offset:2px;
+            ">
+                {secondary_value}
+            </a>
+            """
+        else:
+            secondary_content = secondary_value
+
         secondary_html = f"""
         <div style="
             font-size:1rem;
@@ -182,7 +198,7 @@ def render_recall_card(card):
             overflow-wrap:anywhere;
             word-break:break-word;
         ">
-            {secondary_value}
+            {secondary_content}
         </div>
         """
 
