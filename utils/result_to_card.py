@@ -136,8 +136,12 @@ def build_team_result_card(result, school_styles, school_name_lookup):
     )
 
     card["variant"] = "recall"
-    if pd.notna(row.get("classification")):
-        card["context"] = row["classification"]
+
+    classification = row.get("classification")
+    if pd.notna(classification):
+        classification = str(classification).strip()
+        if classification and classification.lower() != "overall":
+            card["context"] = classification
 
     return card
 
