@@ -10,6 +10,7 @@ from utils.result_to_card import result_to_card
 from utils.card_renderer import render_card
 from utils.explainer import render_explanation
 from utils.schools import get_school_name_lookup, get_school_styles
+from utils.schools_page import render_school_page
 
 
 # ---------------------------------
@@ -242,23 +243,7 @@ def render_home_page():
 
 
 def render_schools_page():
-    st.subheader("Schools")
-
-    school_options = schools_df["canonical_name"].tolist()
-
-    selected_school = st.selectbox(
-        "Select a school",
-        options=school_options,
-        index=None,
-        placeholder="Choose a school",
-        key="selected_school",
-    )
-
-    if not selected_school:
-        st.info("Choose a school to view its profile.")
-        return
-
-    st.success(f"Selected school: {selected_school}")
+    render_school_page(schools_df, team_df)
 
 
 # ---------------------------------
