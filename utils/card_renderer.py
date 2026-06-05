@@ -168,12 +168,18 @@ def render_card(card):
 def render_recall_card(card):
     primary_color, _ = get_colors(card)
     secondary_value = safe_text(card.get("secondary_value"))
-    secondary_link = card.get("secondary_link")
+    raw_secondary_link = card.get("secondary_link")
+
+    secondary_link = None
+    if raw_secondary_link is not None:
+        candidate = str(raw_secondary_link).strip()
+        if candidate and candidate.lower() not in {"nan", "none", "#"}:
+            secondary_link = candidate
 
     secondary_html = ""
     if secondary_value:
-        if isinstance(secondary_link, str) and secondary_link.strip():
-            safe_href = html.escape(secondary_link.strip(), quote=True)
+        if secondary_link:
+            safe_href = html.escape(secondary_link, quote=True)
             secondary_content = f"""
             <a href="{safe_href}" target="_blank" rel="noopener noreferrer" style="
                 color:inherit;
@@ -210,7 +216,6 @@ def render_recall_card(card):
         secondary_html=secondary_html,
         primary_text_color=primary_color,
     )
-
 
 # --------------------------------------------------
 # Ranking Card
