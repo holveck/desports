@@ -109,7 +109,7 @@ def render_school_identity_card(summary):
             border: 1px solid rgba(49, 51, 63, 0.16);
             border-radius: 0.75rem;
             padding: 1.05rem 1.2rem 0.95rem 1.2rem;
-            background: linear-gradient(to right, #ffffff 0%, #ffffff 50%, {primary_color} 100%);
+            background: linear-gradient(to right, #ffffff 0%, #ffffff 10%, {primary_color} 100%);
             margin-bottom: 0.55rem;
         ">
             <div style="
