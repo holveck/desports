@@ -91,13 +91,13 @@ def render_school_identity_card(summary):
     if not primary_color.startswith("#"):
         primary_color = f"#{primary_color}"
 
-    sub_bits = []
+    nickname_text = ""
     if pd.notna(nickname) and str(nickname).strip():
-        sub_bits.append(str(nickname).strip())
-    if pd.notna(location) and str(location).strip():
-        sub_bits.append(str(location).strip())
+        nickname_text = str(nickname).strip()
 
-    sub_line = " • ".join(sub_bits)
+    location_text = ""
+    if pd.notna(location) and str(location).strip():
+        location_text = str(location).strip()
 
     st.markdown(
         f"""
@@ -105,7 +105,7 @@ def render_school_identity_card(summary):
             border: 1px solid rgba(49, 51, 63, 0.16);
             border-radius: 0.75rem;
             padding: 1.05rem 1.2rem 0.95rem 1.2rem;
-            background: linear-gradient(135deg, #ffffff 0%, #ffffff 42%, {primary_color} 100%);
+            background: linear-gradient(to left, #ffffff 0%, #ffffff 42%, {primary_color} 100%);
             margin-bottom: 0.55rem;
         ">
             <div style="
@@ -122,12 +122,22 @@ def render_school_identity_card(summary):
             <div style="
                 font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 0.95rem;
-                line-height: 1.15;
+                line-height: 1.1;
                 font-weight: 400;
-                color: rgba(31, 41, 55, 0.78);
+                color: rgba(31, 41, 55, 0.8);
                 margin-top: 0.18rem;
             ">
-                {sub_line}
+                {nickname_text}
+            </div>
+            <div style="
+                font-family: 'Source Sans Pro', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 0.9rem;
+                line-height: 1.1;
+                font-weight: 400;
+                color: rgba(31, 41, 55, 0.72);
+                margin-top: 0.08rem;
+            ">
+                {location_text}
             </div>
         </div>
         """,
