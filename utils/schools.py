@@ -67,6 +67,47 @@ def load_school_lookup():
 
     return lookup
 
+# --------------------------------------------------
+# Lookup helpers
+# --------------------------------------------------
+
+@lru_cache(maxsize=1)
+def load_school_lookup_by_id():
+    """
+    Return a dict mapping school_id -> school record.
+    """
+    lookup = load_school_lookup()
+
+    by_id = {}
+
+    for record in lookup.values():
+        school_id = record.get("school_id")
+        if school_id and school_id not in by_id:
+            by_id[school_id] = record
+
+    return by_id
+
+
+def get_school_by_id(school_id):
+    """
+    Return the school record for a school_id, or None.
+    """
+    if not school_id:
+        return None
+
+    return load_school_lookup_by_id().get(school_id)
+
+
+def get_canonical_school_name(school_id):
+    """
+    Return the canonical school name for a school_id, or None.
+    """
+    record = get_school_by_id(school_id)
+    if not record:
+        return None
+
+    return record.get("canonical_name")
+
 
 # --------------------------------------------------
 # School extraction
