@@ -5,6 +5,7 @@ import re
 from utils.card_descriptor import build_card_descriptor
 from utils.sport_config import SPORT_CONFIG
 
+DEFAULT_RANKING_CONTEXT = "All Divisions (Combined)"
 
 # --------------------------------------------------
 # Helpers
