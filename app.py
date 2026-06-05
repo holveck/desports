@@ -36,6 +36,14 @@ if "selected_classification" not in st.session_state:
 if "combine_classifications" not in st.session_state:
     st.session_state.combine_classifications = False
 
+if "last_question" not in st.session_state:
+    st.session_state.last_question = None
+
+
+def reset_classification_state():
+    st.session_state.selected_classification = None
+    st.session_state.combine_classifications = False
+
 
 # ---------------------------------
 # Data loading
@@ -136,6 +144,11 @@ question = st.text_input(
 if not question:
     st.stop()
 
+if st.session_state.last_question is not None and question != st.session_state.last_question:
+    reset_classification_state()
+
+st.session_state.last_question = question
+
 
 # ---------------------------------
 # Parse + normalize
@@ -147,25 +160,6 @@ if query is None:
 
 query = normalize_query(query)
 
-if "last_query_scope" not in st.session_state:
-    st.session_state.last_query_scope = None
-
-
-def reset_classification_state():
-    st.session_state.selected_classification = None
-    st.session_state.combine_classifications = False
-
-
-def get_query_scope_signature(query):
-    filters = query.get("filters", {})
-
-    return (
-        query.get("intent"),
-        filters.get("sport"),
-        filters.get("year"),
-        filters.get("since_year"),
-        filters.get("school_id"),
-    )
 
 # ---------------------------------
 # Ranking default (combined totals ONCE)
