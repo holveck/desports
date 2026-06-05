@@ -232,7 +232,7 @@ def render_ranking_card(card):
             font-size:1.18rem;
             font-weight:600;
             line-height:1.3;
-            color:{primary_color};
+            color:#111;
             font-family:{SANS_STACK};
             margin-bottom:10px;
             white-space:normal;
@@ -249,7 +249,7 @@ def render_ranking_card(card):
         primary_font_size="1.5rem",
         primary_margin_bottom="4px",
         secondary_html=secondary_html,
-        primary_text_color="#111",
+        primary_text_color=primary_color,
     )
 
 
@@ -258,10 +258,39 @@ def render_ranking_card(card):
 # --------------------------------------------------
 
 def render_school_summary_card(card):
-    secondary_value = safe_text(card.get("secondary_value"))
+    primary_color, _ = get_colors(card)
+    year_items = card.get("details_year_links") or []
 
     secondary_html = ""
-    if secondary_value:
+
+    if year_items:
+        rendered_items = []
+
+        for item in year_items:
+            label = safe_text(item.get("label"))
+            raw_link = item.get("link")
+
+            year_link = None
+            if raw_link is not None:
+                candidate = str(raw_link).strip()
+                if candidate and candidate.lower() not in {"nan", "none", "#"}:
+                    year_link = candidate
+
+            if year_link:
+                safe_href = html.escape(year_link, quote=True)
+                rendered_items.append(
+                    f"""<a href="{safe_href}" target="_blank" rel="noopener noreferrer" style="
+                        color:inherit;
+                        text-decoration:underline;
+                        text-decoration-color:rgba(17, 17, 17, 0.28);
+                        text-underline-offset:2px;
+                    ">{label}</a>"""
+                )
+            else:
+                rendered_items.append(label)
+
+        years_html = ", ".join(rendered_items)
+
         secondary_html = f"""
         <div style="
             font-size:1rem;
@@ -273,9 +302,26 @@ def render_school_summary_card(card):
             overflow-wrap:anywhere;
             word-break:break-word;
         ">
-            {secondary_value}
+            {years_html}
         </div>
         """
+    else:
+        secondary_value = safe_text(card.get("secondary_value"))
+        if secondary_value:
+            secondary_html = f"""
+            <div style="
+                font-size:1rem;
+                line-height:1.5;
+                color:#333;
+                font-family:{SERIF_STACK};
+                margin-bottom:10px;
+                white-space:normal;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+            ">
+                {secondary_value}
+            </div>
+            """
 
     render_base_card(
         card=card,
@@ -283,5 +329,5 @@ def render_school_summary_card(card):
         primary_font_size="1.55rem",
         primary_margin_bottom="8px",
         secondary_html=secondary_html,
-        primary_text_color="#111",
+        primary_text_color=primary_color,
     )
