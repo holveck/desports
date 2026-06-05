@@ -180,10 +180,15 @@ def build_ranking_card(result, filters, school_styles, school_name_lookup):
         if len(leaders) > 3:
             leader_text += f" +{len(leaders) - 3} more"
 
+        count_leaders = len(leaders)
+
         card = build_card_descriptor(
             title=title,
             primary_value=leader_text,
-            secondary_value=f"{top_titles} championships",
+            secondary_value=(
+                f"{count_leaders} school{'s' if count_leaders != 1 else ''} "
+                f"tied with {top_titles} championships"
+            ),
             school_id=None,
             details_rows=result,
             school_styles=school_styles,
