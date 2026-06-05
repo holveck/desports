@@ -74,21 +74,27 @@ def execute_query(query, team_df, rec_df):
         explanation.append("Counted championship results")
         return len(df), explanation
 
-    # RANKING
+        # RANKING
     if intent == "ranking":
         df = team_df.copy()
         df = apply_team_filters(df, filters, explanation)
 
         grouped = (
-            df.groupby("champion")
+            df.groupby("champion", as_index=False)
               .size()
-              .reset_index(name="titles")
-              .sort_values("titles", ascending=False)
+              .rename(columns={"size": "titles"})
+              .sort_values(["titles", "champion"], ascending=[False, True])
         )
 
         explanation.append("Grouped championships by school")
         explanation.append("Ranked schools by number of titles")
 
-        return grouped.head(1), explanation
+        if grouped.empty:
+            return grouped, explanation
 
-    return None, ["Unsupported query"]
+        top_titles = grouped.iloc[0]["titles"]
+        leaders = grouped[grouped["titles"] == top_titles].reset_index(drop=True)
+
+        explanation.append(f"Found {len(leaders)} top school(s) tied at {top_titles} titles")
+
+        return leaders, explanation
