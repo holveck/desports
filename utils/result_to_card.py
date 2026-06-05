@@ -235,9 +235,10 @@ def build_school_summary_card(result, filters, school_styles):
 
     total_titles = len(scoped_df)
 
+    scoped_df = scoped_df.sort_values("year")
+
     years = (
         scoped_df
-        .sort_values("year")
         .apply(
             lambda row: format_year_with_classification(
                 int(row["year"]),
@@ -247,6 +248,25 @@ def build_school_summary_card(result, filters, school_styles):
         )
         .tolist()
     )
+
+    year_link_items = []
+    for _, row in scoped_df.iterrows():
+        year_label = format_year_with_classification(
+            int(row["year"]),
+            row.get("classification")
+        )
+
+        raw_link = clean_text(row.get("link"))
+        year_link = None
+        if raw_link:
+            raw_link = str(raw_link).strip()
+            if raw_link and raw_link.lower() not in {"nan", "none", "#"}:
+                year_link = raw_link
+
+        year_link_items.append({
+            "label": year_label,
+            "link": year_link,
+        })
 
     title = format_school_summary_title(school_name, filters)
 
@@ -262,6 +282,7 @@ def build_school_summary_card(result, filters, school_styles):
     card["variant"] = "school_summary"
     card["context"] = scope_label
     card["details_years"] = years
+    card["details_year_links"] = year_link_items
 
     return card
 
