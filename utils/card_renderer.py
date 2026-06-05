@@ -72,7 +72,11 @@ def render_base_card(
             border-top:1px solid {secondary_color};
             padding-top:8px;
             font-size:0.85rem;
+            line-height:1.4;
             color:#666;
+            white-space:normal;
+            overflow-wrap:anywhere;
+            word-break:break-word;
         ">
             {context}
         </div>
@@ -81,21 +85,38 @@ def render_base_card(
     raw_html(
         f"""
         <div style="
-            max-width: 380px;
-            padding: 20px;
-            margin-bottom: 6px;
-            background: #ffffff;
-            border-left: 8px solid {primary_color};
-            border-radius: 10px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width:380px;
+            padding:20px;
+            margin-bottom:6px;
+            background:#ffffff;
+            border-left:8px solid {primary_color};
+            border-radius:10px;
+            box-shadow:0 1px 2px rgba(0,0,0,0.05);
+            font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            color:#111;
         ">
 
-            <div style="font-size:0.95rem;color:#555;margin-bottom:{title_margin_bottom};">
+            <div style="
+                font-size:0.95rem;
+                line-height:1.35;
+                color:#555;
+                margin-bottom:{title_margin_bottom};
+                white-space:normal;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+            ">
                 {title}
             </div>
 
-            <div style="font-size:{primary_font_size};font-weight:700;margin-bottom:{primary_margin_bottom};">
+            <div style="
+                font-size:{primary_font_size};
+                font-weight:700;
+                line-height:1.15;
+                margin-bottom:{primary_margin_bottom};
+                white-space:normal;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+            ">
                 {primary_value}
             </div>
 
@@ -105,7 +126,7 @@ def render_base_card(
 
         </div>
         """,
-        height=260,
+        height=320,
     )
 
 
@@ -132,7 +153,15 @@ def render_recall_card(card):
     secondary_html = ""
     if secondary_value:
         secondary_html = f"""
-        <div style="font-size:1rem;color:#333;margin-bottom:10px;">
+        <div style="
+            font-size:1rem;
+            line-height:1.45;
+            color:#333;
+            margin-bottom:10px;
+            white-space:normal;
+            overflow-wrap:anywhere;
+            word-break:break-word;
+        ">
             {secondary_value}
         </div>
         """
@@ -160,8 +189,12 @@ def render_ranking_card(card):
         <div style="
             font-size:1.25rem;
             font-weight:600;
+            line-height:1.3;
             color:{primary_color};
             margin-bottom:10px;
+            white-space:normal;
+            overflow-wrap:anywhere;
+            word-break:break-word;
         ">
             {secondary_value}
         </div>
