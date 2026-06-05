@@ -97,164 +97,190 @@ def format_year_with_classification(year, classification):
 
 
 # --------------------------------------------------
-# Result -> Card mapping
+# Card builders
 # --------------------------------------------------
 
-def result_to_card(result, explanation, query, school_styles, school_name_lookup):
-
-    intent = query.get("intent")
-    filters = query.get("filters", {})
-
-    # --------------------------------------------------
-    # TEAM RESULT (recall)
-    # --------------------------------------------------
-    if (
-        intent == "team_result"
-        and isinstance(result, pd.DataFrame)
+def build_team_result_card(result, school_styles, school_name_lookup):
+    if not (
+        isinstance(result, pd.DataFrame)
         and len(result) == 1
         and "year" in result.columns
     ):
+        return None
+
+    row = result.iloc[0]
+
+    champ_name = clean_text(row["champion"])
+    school_id = school_name_lookup.get(normalize_school_name(champ_name))
+
+    sport_label = format_sport_label(row)
+    title = f"{row['year']} {sport_label} State Champion"
+
+    score = None
+    if pd.notna(row.get("champion_score")) and pd.notna(row.get("runner_up_score")):
+        score = f"{row['champion_score']}-{row['runner_up_score']}"
+        if pd.notna(row.get("score_note")):
+            score += f" ({row['score_note']})"
+
+    secondary = None
+    if score and pd.notna(row.get("runner_up")):
+        secondary = f"Defeated {row['runner_up']} {score}"
+
+    card = build_card_descriptor(
+        title=title,
+        primary_value=champ_name,
+        secondary_value=clean_text(secondary),
+        school_id=school_id,
+        details_rows=result,
+        school_styles=school_styles,
+    )
+
+    card["variant"] = "recall"
+    if pd.notna(row.get("classification")):
+        card["context"] = row["classification"]
+
+    return card
+
+
+def build_ranking_card(result, filters, school_styles, school_name_lookup):
+    if not (
+        isinstance(result, pd.DataFrame)
+        and "titles" in result.columns
+    ):
+        return None
+
+    if result.empty:
+        return None
+
+    title = format_ranking_title(filters)
+    top_titles = int(result.iloc[0]["titles"])
+
+    if len(result) == 1:
         row = result.iloc[0]
 
         champ_name = clean_text(row["champion"])
         school_id = school_name_lookup.get(normalize_school_name(champ_name))
 
-        sport_label = format_sport_label(row)
-        title = f"{row['year']} {sport_label} State Champion"
-
-        score = None
-        if pd.notna(row.get("champion_score")) and pd.notna(row.get("runner_up_score")):
-            score = f"{row['champion_score']}-{row['runner_up_score']}"
-            if pd.notna(row.get("score_note")):
-                score += f" ({row['score_note']})"
-
-        secondary = None
-        if score and pd.notna(row.get("runner_up")):
-            secondary = f"Defeated {row['runner_up']} {score}"
-
         card = build_card_descriptor(
             title=title,
             primary_value=champ_name,
-            secondary_value=clean_text(secondary),
+            secondary_value=f"{row['titles']} championships",
             school_id=school_id,
             details_rows=result,
             school_styles=school_styles,
         )
+    else:
+        leaders = [
+            clean_text(name)
+            for name in result["champion"].tolist()
+            if pd.notna(name)
+        ]
 
-        card["variant"] = "recall"
-        if pd.notna(row.get("classification")):
-            card["context"] = row["classification"]
-
-        return card
-
-    # --------------------------------------------------
-    # RANKING
-    # --------------------------------------------------
-    if intent == "ranking" and isinstance(result, pd.DataFrame) and "titles" in result.columns:
-        if result.empty:
-            return None
-
-        title = format_ranking_title(filters)
-        top_titles = int(result.iloc[0]["titles"])
-
-        if len(result) == 1:
-            row = result.iloc[0]
-
-            champ_name = clean_text(row["champion"])
-            school_id = school_name_lookup.get(normalize_school_name(champ_name))
-
-            card = build_card_descriptor(
-                title=title,
-                primary_value=champ_name,
-                secondary_value=f"{row['titles']} championships",
-                school_id=school_id,
-                details_rows=result,
-                school_styles=school_styles,
-            )
-        else:
-            leaders = [
-                clean_text(name)
-                for name in result["champion"].tolist()
-                if pd.notna(name)
-            ]
-
-            leader_text = ", ".join(leaders[:3])
-            if len(leaders) > 3:
-                leader_text += f" +{len(leaders) - 3} more"
-
-            card = build_card_descriptor(
-                title=title,
-                primary_value=leader_text,
-                secondary_value=f"{top_titles} championships",
-                school_id=None,
-                details_rows=result,
-                school_styles=school_styles,
-            )
-
-            card["tie_leaders"] = leaders
-            card["tie_summary"] = leader_text
-
-        card["variant"] = "ranking"
-        card["context"] = filters.get("classification", "All Divisions (Combined)")
-        return card
-
-    # --------------------------------------------------
-    # SCHOOL SUMMARY (Phase 2 + Phase 3)
-    # --------------------------------------------------
-    if intent == "school_summary" and isinstance(result, pd.DataFrame):
-
-        if result.empty:
-            return None
-
-        school_name = clean_text(result.iloc[0]["champion"])
-        school_id = filters.get("school_id")
-        classification_filter = filters.get("classification")
-
-        if classification_filter:
-            scoped_df = result[result["classification"] == classification_filter]
-            scope_label = classification_filter
-        else:
-            scoped_df = result
-            if filters.get("since_year"):
-                scope_label = f"Since {filters['since_year']}"
-            else:
-                scope_label = "All-time total"
-
-        total_titles = len(scoped_df)
-
-        years = (
-            scoped_df
-            .sort_values("year")
-            .apply(
-                lambda row: format_year_with_classification(
-                    int(row["year"]),
-                    row.get("classification")
-                ),
-                axis=1
-            )
-            .tolist()
-        )
-
-        title = format_school_summary_title(school_name, filters)
+        leader_text = ", ".join(leaders[:3])
+        if len(leaders) > 3:
+            leader_text += f" +{len(leaders) - 3} more"
 
         card = build_card_descriptor(
             title=title,
-            primary_value=f"{total_titles} championships",
-            secondary_value=", ".join(years),
-            school_id=school_id,
-            details_rows=scoped_df,
+            primary_value=leader_text,
+            secondary_value=f"{top_titles} championships",
+            school_id=None,
+            details_rows=result,
             school_styles=school_styles,
         )
 
-        card["variant"] = "school_summary"
-        card["context"] = scope_label
-        card["details_years"] = years
+        card["tie_leaders"] = leaders
+        card["tie_summary"] = leader_text
 
-        return card
+    card["variant"] = "ranking"
+    card["context"] = filters.get("classification", "All Divisions (Combined)")
+    return card
 
-    # --------------------------------------------------
-    # LEGACY NUMERIC AGGREGATION
-    # --------------------------------------------------
+
+def build_school_summary_card(result, filters, school_styles):
+    if not isinstance(result, pd.DataFrame):
+        return None
+
+    if result.empty:
+        return None
+
+    school_name = clean_text(result.iloc[0]["champion"])
+    school_id = filters.get("school_id")
+    classification_filter = filters.get("classification")
+
+    if classification_filter:
+        scoped_df = result[result["classification"] == classification_filter]
+        scope_label = classification_filter
+    else:
+        scoped_df = result
+        if filters.get("since_year"):
+            scope_label = f"Since {filters['since_year']}"
+        else:
+            scope_label = "All-time total"
+
+    total_titles = len(scoped_df)
+
+    years = (
+        scoped_df
+        .sort_values("year")
+        .apply(
+            lambda row: format_year_with_classification(
+                int(row["year"]),
+                row.get("classification")
+            ),
+            axis=1
+        )
+        .tolist()
+    )
+
+    title = format_school_summary_title(school_name, filters)
+
+    card = build_card_descriptor(
+        title=title,
+        primary_value=f"{total_titles} championships",
+        secondary_value=", ".join(years),
+        school_id=school_id,
+        details_rows=scoped_df,
+        school_styles=school_styles,
+    )
+
+    card["variant"] = "school_summary"
+    card["context"] = scope_label
+    card["details_years"] = years
+
+    return card
+
+
+# --------------------------------------------------
+# Result -> Card mapping
+# --------------------------------------------------
+
+def result_to_card(result, explanation, query, school_styles, school_name_lookup):
+    intent = query.get("intent")
+    filters = query.get("filters", {})
+
+    if intent == "team_result":
+        return build_team_result_card(
+            result=result,
+            school_styles=school_styles,
+            school_name_lookup=school_name_lookup,
+        )
+
+    if intent == "ranking":
+        return build_ranking_card(
+            result=result,
+            filters=filters,
+            school_styles=school_styles,
+            school_name_lookup=school_name_lookup,
+        )
+
+    if intent == "school_summary":
+        return build_school_summary_card(
+            result=result,
+            filters=filters,
+            school_styles=school_styles,
+        )
+
     if isinstance(result, int):
         return build_card_descriptor(
             title="Total State Championships",
