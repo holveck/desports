@@ -109,7 +109,9 @@ def render_school_identity_card(summary):
             border: 1px solid rgba(49, 51, 63, 0.16);
             border-radius: 0.75rem;
             padding: 1.05rem 1.2rem 0.95rem 1.2rem;
-            background: radial-gradient(circle at center, #ffffff 0%, #ffffff 32%, {primary_color} 100%);
+            background:
+    radial-gradient(circle at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.88) 22%, rgba(255,255,255,0) 52%),
+    radial-gradient(circle at center, {primary_color} 0%, {primary_color} 100%);
             margin-bottom: 0.55rem;
         ">
             <div style="
