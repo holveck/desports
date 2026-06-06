@@ -71,10 +71,7 @@ def build_school_summary(school_record, team_titles_df):
 
     recent_titles = pd.DataFrame()
     if not team_titles_df.empty:
-        if "year" in team_titles_df.columns:
-            recent_titles = team_titles_df.sort_values("year", ascending=False).head(3).copy()
-        else:
-            recent_titles = team_titles_df.head(3).copy()
+        recent_titles = sort_titles_df(team_titles_df).head(3).copy()
 
     return {
         "school_record": school_record,
@@ -223,7 +220,7 @@ def render_school_kpi(summary):
     )
 
 
-def format_sport_label(row):
+def get_sport_display_label(row):
     sport = str(row.get("sport", "")).strip()
     gender = str(row.get("gender", "")).strip().lower()
 
@@ -253,6 +250,60 @@ def format_sport_label(row):
         label = sport
 
     return smart_title_case(label)
+
+
+def get_season_rank(row):
+    sport_label = get_sport_display_label(row).lower()
+
+    season_order = {
+        "boys cross country": 1,
+        "girls cross country": 1,
+        "football": 1,
+        "boys soccer": 1,
+        "girls volleyball": 1,
+        "field hockey": 1,
+
+        "boys basketball": 2,
+        "girls basketball": 2,
+        "wrestling": 2,
+        "boys swimming and diving": 2,
+        "girls swimming and diving": 2,
+        "boys indoor track and field": 2,
+        "girls indoor track and field": 2,
+
+        "girls soccer": 3,
+        "softball": 3,
+        "baseball": 3,
+        "girls lacrosse": 3,
+        "boys lacrosse": 3,
+        "boys volleyball": 3,
+        "tennis": 3,
+        "golf": 3,
+        "boys outdoor track and field": 3,
+        "girls outdoor track and field": 3,
+    }
+
+    return season_order.get(sport_label, 99)
+
+
+def sort_titles_df(df):
+    sorted_df = df.copy()
+
+    if "year" in sorted_df.columns:
+        sorted_df["year"] = pd.to_numeric(sorted_df["year"], errors="coerce")
+
+    sorted_df["_season_rank"] = sorted_df.apply(get_season_rank, axis=1)
+    sorted_df = sorted_df.sort_values(
+        ["year", "_season_rank"],
+        ascending=[False, True],
+        na_position="last",
+    )
+
+    return sorted_df
+
+
+def format_sport_label(row):
+    return get_sport_display_label(row)
 
 
 def format_score_text(row):
@@ -306,13 +357,10 @@ def render_recent_championships(team_titles_df):
         )
         return
 
-    recent_df = team_titles_df.copy()
+    recent_df = sort_titles_df(team_titles_df).head(3).copy()
 
-    if "year" in recent_df.columns:
-        recent_df["year"] = pd.to_numeric(recent_df["year"], errors="coerce")
-        recent_df = recent_df.sort_values("year", ascending=False, na_position="last")
-
-    recent_df = recent_df.head(3)
+    if "_season_rank" in recent_df.columns:
+        recent_df = recent_df.drop(columns=["_season_rank"])
 
     row_blocks = []
 
@@ -386,12 +434,13 @@ def render_all_team_titles(team_titles_df):
             if col in team_titles_df.columns
         ]
 
-        all_titles = team_titles_df.copy()
+        all_titles = sort_titles_df(team_titles_df).copy()
+
+        if "_season_rank" in all_titles.columns:
+            all_titles = all_titles.drop(columns=["_season_rank"])
 
         if "year" in all_titles.columns:
-            all_titles["year"] = pd.to_numeric(all_titles["year"], errors="coerce")
-            all_titles = all_titles.sort_values("year", ascending=False, na_position="last")
-            all_titles["year"] = all_titles["year"].astype("Int64")
+            all_titles["year"] = pd.to_numeric(all_titles["year"], errors="coerce").astype("Int64")
 
         st.dataframe(
             all_titles[display_cols],
