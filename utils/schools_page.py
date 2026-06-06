@@ -256,32 +256,32 @@ def get_season_rank(row):
     sport_label = get_sport_display_label(row).lower()
 
     season_order = {
-        "boys cross country": 1,
-        "girls cross country": 1,
-        "football": 1,
-        "boys soccer": 1,
-        "girls volleyball": 1,
-        "field hockey": 1,
+    "boys basketball": 1,
+    "girls basketball": 1,
+    "wrestling": 1,
+    "boys swimming and diving": 1,
+    "girls swimming and diving": 1,
+    "boys indoor track and field": 1,
+    "girls indoor track and field": 1,
 
-        "boys basketball": 2,
-        "girls basketball": 2,
-        "wrestling": 2,
-        "boys swimming and diving": 2,
-        "girls swimming and diving": 2,
-        "boys indoor track and field": 2,
-        "girls indoor track and field": 2,
+    "girls soccer": 2,
+    "softball": 2,
+    "baseball": 2,
+    "girls lacrosse": 2,
+    "boys lacrosse": 2,
+    "boys volleyball": 2,
+    "tennis": 2,
+    "golf": 2,
+    "boys outdoor track and field": 2,
+    "girls outdoor track and field": 2,
 
-        "girls soccer": 3,
-        "softball": 3,
-        "baseball": 3,
-        "girls lacrosse": 3,
-        "boys lacrosse": 3,
-        "boys volleyball": 3,
-        "tennis": 3,
-        "golf": 3,
-        "boys outdoor track and field": 3,
-        "girls outdoor track and field": 3,
-    }
+    "boys cross country": 3,
+    "girls cross country": 3,
+    "football": 3,
+    "boys soccer": 3,
+    "girls volleyball": 3,
+    "field hockey": 3,
+}
 
     return season_order.get(sport_label, 99)
 
