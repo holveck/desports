@@ -1,6 +1,7 @@
 import html
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from utils.schools_page import (
     FONT_STACK,
@@ -12,9 +13,23 @@ from utils.schools_page import (
 )
 
 
+def clean_text(value):
+    if pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if text.lower() == "nan":
+        return ""
+    return text
+
+
 def build_score_display(row):
-    base_score = format_score_text(row)
-    score_note = str(row.get("score_note", "")).strip()
+    champion_score = clean_text(row.get("champion_score", ""))
+    runner_up_score = clean_text(row.get("runner_up_score", ""))
+    score_note = clean_text(row.get("score_note", ""))
+
+    base_score = ""
+    if champion_score and runner_up_score:
+        base_score = f"{champion_score}-{runner_up_score}"
 
     if base_score and score_note:
         return f"{base_score} ({score_note})"
@@ -36,23 +51,23 @@ def build_display_df(team_df):
 
     df = sort_titles_df(df).copy()
 
+    if "_season_sort_key" in df.columns:
+        df = df.drop(columns=["_season_sort_key"])
+
     df["Sport"] = df.apply(format_sport_label, axis=1)
     df["Score"] = df.apply(build_score_display, axis=1)
     df["_story_url"] = df.apply(get_story_url, axis=1)
 
-    display_df = pd.DataFrame({
+    return pd.DataFrame({
         "Year": df["year"].astype("Int64").astype(str).replace("<NA>", ""),
-        "Sport": df["Sport"].fillna(""),
-        "Classification": df["classification"].fillna("") if "classification" in df.columns else "",
-        "Champion": df["champion"].fillna("") if "champion" in df.columns else "",
-        "Runner-up": df["runner_up"].fillna("") if "runner_up" in df.columns else "",
-        "Score": df["Score"].fillna(""),
-        "Venue": df["venue"].fillna("") if "venue" in df.columns else "",
-        "_story_url": df["_story_url"].fillna(""),
-        "_year_numeric": pd.to_numeric(df["year"], errors="coerce"),
+        "Sport": df["Sport"].map(clean_text),
+        "Classification": df["classification"].map(clean_text) if "classification" in df.columns else "",
+        "Champion": df["champion"].map(clean_text) if "champion" in df.columns else "",
+        "Runner-up": df["runner_up"].map(clean_text) if "runner_up" in df.columns else "",
+        "Score": df["Score"].map(clean_text),
+        "Venue": df["venue"].map(clean_text) if "venue" in df.columns else "",
+        "_story_url": df["_story_url"].map(clean_text),
     })
-
-    return display_df
 
 
 def render_explorer_table(display_df):
@@ -63,23 +78,21 @@ def render_explorer_table(display_df):
     rows_html = []
 
     for _, row in display_df.iterrows():
-        year_html = html.escape(str(row.get("Year", "") or ""))
-        sport_html = html.escape(str(row.get("Sport", "") or ""))
-        classification_html = html.escape(str(row.get("Classification", "") or ""))
-        champion_html = html.escape(str(row.get("Champion", "") or ""))
-        runner_up_html = html.escape(str(row.get("Runner-up", "") or ""))
-        venue_html = html.escape(str(row.get("Venue", "") or ""))
-        score_text = str(row.get("Score", "") or "")
-        score_html_escaped = html.escape(score_text)
-        story_url = str(row.get("_story_url", "") or "").strip()
+        year_html = html.escape(clean_text(row.get("Year", "")))
+        sport_html = html.escape(clean_text(row.get("Sport", "")))
+        classification_html = html.escape(clean_text(row.get("Classification", "")))
+        champion_html = html.escape(clean_text(row.get("Champion", "")))
+        runner_up_html = html.escape(clean_text(row.get("Runner-up", "")))
+        venue_html = html.escape(clean_text(row.get("Venue", "")))
+        score_text = clean_text(row.get("Score", ""))
+        score_html = html.escape(score_text)
+        story_url = clean_text(row.get("_story_url", ""))
 
         if story_url and score_text:
             score_html = (
                 f'<a href="{html.escape(story_url)}" target="_blank" rel="noopener noreferrer" '
-                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">{score_html_escaped}</a>'
+                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">{score_html}</a>'
             )
-        else:
-            score_html = score_html_escaped
 
         rows_html.append(
             f"""
@@ -96,70 +109,87 @@ def render_explorer_table(display_df):
         )
 
     table_html = f"""
-    <style>
-        .championship-table-wrap {{
-            border: 1px solid rgba(49, 51, 63, 0.14);
-            border-radius: 0.75rem;
-            overflow: hidden;
-            background: #ffffff;
-            margin-top: 0.4rem;
-        }}
-        .championship-table-scroll {{
-            overflow-x: auto;
-        }}
-        table.championship-table {{
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 980px;
-            font-family: {FONT_STACK};
-            font-size: 0.95rem;
-            line-height: 1.2;
-            color: #1f2937;
-        }}
-        .championship-table thead th {{
-            text-align: left;
-            font-weight: 700;
-            background: #f8fafc;
-            border-bottom: 1px solid rgba(49, 51, 63, 0.14);
-            padding: 0.7rem 0.8rem;
-            white-space: nowrap;
-        }}
-        .championship-table tbody td {{
-            padding: 0.68rem 0.8rem;
-            border-bottom: 1px solid rgba(49, 51, 63, 0.09);
-            vertical-align: top;
-        }}
-        .championship-table tbody tr:last-child td {{
-            border-bottom: none;
-        }}
-        .championship-table tbody tr:hover {{
-            background: rgba(248, 250, 252, 0.85);
-        }}
-    </style>
-
-    <div class="championship-table-wrap">
-        <div class="championship-table-scroll">
-            <table class="championship-table">
-                <thead>
-                    <tr>
-                        <th>Year</th>
-                        <th>Sport</th>
-                        <th>Classification</th>
-                        <th>Champion</th>
-                        <th>Runner-up</th>
-                        <th>Score</th>
-                        <th>Venue</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {"".join(rows_html)}
-                </tbody>
-            </table>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                background: white;
+                font-family: {FONT_STACK};
+            }}
+            .championship-table-wrap {{
+                border: 1px solid rgba(49, 51, 63, 0.14);
+                border-radius: 12px;
+                overflow: hidden;
+                background: #ffffff;
+            }}
+            .championship-table-scroll {{
+                overflow-x: auto;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 980px;
+                font-size: 0.95rem;
+                line-height: 1.2;
+                color: #1f2937;
+            }}
+            thead th {{
+                text-align: left;
+                font-weight: 700;
+                background: #f8fafc;
+                border-bottom: 1px solid rgba(49, 51, 63, 0.14);
+                padding: 0.7rem 0.8rem;
+                white-space: nowrap;
+            }}
+            tbody td {{
+                padding: 0.68rem 0.8rem;
+                border-bottom: 1px solid rgba(49, 51, 63, 0.09);
+                vertical-align: top;
+            }}
+            tbody tr:last-child td {{
+                border-bottom: none;
+            }}
+            tbody tr:hover {{
+                background: rgba(248, 250, 252, 0.85);
+            }}
+            a {{
+                color: #1f2937;
+                text-decoration: underline;
+                text-underline-offset: 2px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="championship-table-wrap">
+            <div class="championship-table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Sport</th>
+                            <th>Classification</th>
+                            <th>Champion</th>
+                            <th>Runner-up</th>
+                            <th>Score</th>
+                            <th>Venue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {"".join(rows_html)}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </body>
+    </html>
     """
 
-    st.markdown(table_html, unsafe_allow_html=True)
+    table_height = min(900, max(420, 88 + 38 * len(display_df)))
+    components.html(table_html, height=table_height, scrolling=True)
 
 
 def render_championship_explorer(team_df, schools_df):
@@ -169,6 +199,9 @@ def render_championship_explorer(team_df, schools_df):
     )
     st.caption("Browse Delaware state championship results by school, year, or sport.")
 
+    base_df = team_df.copy()
+    base_df["Sport"] = base_df.apply(format_sport_label, axis=1)
+
     school_options = ["All schools"] + (
         schools_df["canonical_name"]
         .dropna()
@@ -176,13 +209,6 @@ def render_championship_explorer(team_df, schools_df):
         .sort_values()
         .tolist()
     )
-
-    default_school = st.session_state.get("explorer_selected_school", "All schools")
-    if default_school not in school_options:
-        default_school = "All schools"
-
-    base_df = team_df.copy()
-    base_df["Sport"] = base_df.apply(format_sport_label, axis=1)
 
     year_values = (
         pd.to_numeric(base_df["year"], errors="coerce")
@@ -198,14 +224,19 @@ def render_championship_explorer(team_df, schools_df):
         base_df["Sport"]
         .dropna()
         .astype(str)
-        .loc[lambda s: s.str.strip() != ""]
+        .map(str.strip)
+        .loc[lambda s: s != ""]
         .sort_values()
         .unique()
         .tolist()
     )
     sport_options = ["All sports"] + sport_values
 
-    col1, col2, col3 = st.columns([1.25, 1, 1])
+    default_school = st.session_state.get("explorer_selected_school", "All schools")
+    if default_school not in school_options:
+        default_school = "All schools"
+
+    col1, col2, col3 = st.columns([1.3, 1, 1])
 
     with col1:
         selected_school = st.selectbox(
@@ -217,7 +248,7 @@ def render_championship_explorer(team_df, schools_df):
 
     with col2:
         selected_year = st.selectbox(
-            "Sort by year",
+            "Year",
             options=year_options,
             index=0,
             key="championship_explorer_year",
@@ -225,7 +256,7 @@ def render_championship_explorer(team_df, schools_df):
 
     with col3:
         selected_sport = st.selectbox(
-            "Sort by sport",
+            "Sport",
             options=sport_options,
             index=0,
             key="championship_explorer_sport",
@@ -250,8 +281,4 @@ def render_championship_explorer(team_df, schools_df):
         filtered_df = filtered_df[filtered_df["Sport"] == selected_sport].copy()
 
     display_df = build_display_df(filtered_df)
-
-    if "_year_numeric" in display_df.columns:
-        display_df = display_df.drop(columns=["_year_numeric"])
-
     render_explorer_table(display_df)
