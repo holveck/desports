@@ -404,8 +404,10 @@ def render_recent_championships(team_titles_df):
 
     st.markdown(box_html, unsafe_allow_html=True)
 
-    if st.button("View All", key="view_all_championships", use_container_width=False):
-        st.session_state["show_all_titles_expanded"] = True
+    if st.button("Browse all championships", key="view_all_championships", use_container_width=False):
+        st.session_state["explorer_selected_school"] = st.session_state.get("selected_school", "All schools")
+        st.session_state["main_view"] = "Championship Explorer"
+        st.rerun()
 
 
 def render_all_team_titles(team_titles_df):
@@ -470,4 +472,3 @@ def render_school_page(schools_df, team_df):
     render_school_identity_card(summary)
     render_school_kpi(summary)
     render_recent_championships(team_titles_df)
-    render_all_team_titles(team_titles_df)
