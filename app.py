@@ -31,6 +31,9 @@ st.set_page_config(
 if "main_view" not in st.session_state:
     st.session_state.main_view = "Home"
 
+if "main_view_pills" not in st.session_state:
+    st.session_state.main_view_pills = st.session_state.main_view
+
 if "selected_classification" not in st.session_state:
     st.session_state.selected_classification = None
 
@@ -259,27 +262,23 @@ def render_explorer_page():
 # ---------------------------------
 
 st.title("🐔 Delaware High School Sports Handbook")
-st.write(
-    "Explore state championship history across all high school sports."
-)
+st.write("Explore state championship history across all high school sports.")
 
 nav_options = ["Home", "Schools", "Championship Explorer"]
 
-current_view = st.session_state.main_view
-if current_view not in nav_options:
-    current_view = "Home"
+if st.session_state.main_view_pills not in nav_options:
+    st.session_state.main_view_pills = "Home"
 
 selected_view = st.pills(
     "Navigation",
     options=nav_options,
     selection_mode="single",
-    default=current_view,
     key="main_view_pills",
     label_visibility="collapsed",
 )
 
 if selected_view is None:
-    selected_view = current_view
+    selected_view = st.session_state.main_view
 
 st.session_state.main_view = selected_view
 
