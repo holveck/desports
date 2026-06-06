@@ -11,6 +11,7 @@ from utils.card_renderer import render_card
 from utils.explainer import render_explanation
 from utils.schools import get_school_name_lookup, get_school_styles
 from utils.schools_page import render_school_page
+from utils.championship_explorer import render_championship_explorer
 
 
 # ---------------------------------
@@ -41,6 +42,9 @@ if "last_question" not in st.session_state:
 
 if "selected_school" not in st.session_state:
     st.session_state.selected_school = None
+
+if "explorer_selected_school" not in st.session_state:
+    st.session_state.explorer_selected_school = "All schools"
 
 
 def reset_classification_state():
@@ -246,6 +250,10 @@ def render_schools_page():
     render_school_page(schools_df, team_df)
 
 
+def render_explorer_page():
+    render_championship_explorer(team_df, schools_df)
+
+
 # ---------------------------------
 # App header + navigation
 # ---------------------------------
@@ -255,17 +263,23 @@ st.write(
     "Explore state championship history across all high school sports."
 )
 
+nav_options = ["Home", "Schools", "Championship Explorer"]
+
+current_view = st.session_state.main_view
+if current_view not in nav_options:
+    current_view = "Home"
+
 selected_view = st.pills(
     "Navigation",
-    options=["Home", "Schools"],
+    options=nav_options,
     selection_mode="single",
-    default=st.session_state.main_view,
+    default=current_view,
     key="main_view_pills",
     label_visibility="collapsed",
 )
 
 if selected_view is None:
-    selected_view = "Home"
+    selected_view = current_view
 
 st.session_state.main_view = selected_view
 
@@ -276,5 +290,7 @@ st.session_state.main_view = selected_view
 
 if st.session_state.main_view == "Home":
     render_home_page()
-else:
+elif st.session_state.main_view == "Schools":
     render_schools_page()
+else:
+    render_explorer_page()
