@@ -264,7 +264,7 @@ def render_explorer_page():
 st.title("🐔 Delaware High School Sports Handbook")
 st.write("Explore state championship history across all high school sports.")
 
-nav_options = ["Home", "Schools", "Championship Explorer"]
+nav_options = ["Home", "Schools", "State champions"]
 
 if st.session_state.main_view_pills not in nav_options:
     st.session_state.main_view_pills = "Home"
