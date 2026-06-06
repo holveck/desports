@@ -263,7 +263,6 @@ def get_season_sort_key(row):
         "girls swimming and diving": 0,
         "boys indoor track and field": 0,
         "girls indoor track and field": 0,
-
         "girls soccer": 1,
         "softball": 1,
         "baseball": 1,
@@ -274,7 +273,6 @@ def get_season_sort_key(row):
         "golf": 1,
         "boys outdoor track and field": 1,
         "girls outdoor track and field": 1,
-
         "boys cross country": 2,
         "girls cross country": 2,
         "football": 2,
@@ -344,6 +342,12 @@ def build_recent_result_text(row):
     return " ".join(parts).strip()
 
 
+def go_to_championship_explorer():
+    st.session_state["explorer_selected_school"] = st.session_state.get("selected_school", "All schools")
+    st.session_state["main_view"] = "Championship Explorer"
+    st.session_state["main_view_pills"] = "Championship Explorer"
+
+
 def render_recent_championships(team_titles_df):
     st.markdown(
         f'<div style="font-family:{FONT_STACK};font-size:1.08rem;line-height:1.15;font-weight:700;color:#1f2937;margin:0.1rem 0 0.45rem 0;">Recent Championships</div>',
@@ -404,10 +408,12 @@ def render_recent_championships(team_titles_df):
 
     st.markdown(box_html, unsafe_allow_html=True)
 
-    if st.button("Browse all championships", key="view_all_championships", use_container_width=False):
-        st.session_state["explorer_selected_school"] = st.session_state.get("selected_school", "All schools")
-        st.session_state["main_view"] = "Championship Explorer"
-        st.rerun()
+    st.button(
+        "Browse all championships",
+        key="view_all_championships",
+        use_container_width=False,
+        on_click=go_to_championship_explorer,
+    )
 
 
 def render_school_page(schools_df, team_df):
@@ -424,9 +430,6 @@ def render_school_page(schools_df, team_df):
 
     team_titles_df = get_team_titles_for_school(team_df, selected_school)
     summary = build_school_summary(school_record, team_titles_df)
-
-    if "show_all_titles_expanded" not in st.session_state:
-        st.session_state["show_all_titles_expanded"] = False
 
     render_school_identity_card(summary)
     render_school_kpi(summary)
