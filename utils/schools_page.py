@@ -410,47 +410,6 @@ def render_recent_championships(team_titles_df):
         st.rerun()
 
 
-def render_all_team_titles(team_titles_df):
-    expanded = st.session_state.get("show_all_titles_expanded", False)
-
-    with st.expander("Show all team championship records", expanded=expanded):
-        if team_titles_df.empty:
-            st.info("No championship rows found.")
-            return
-
-        display_cols = [
-            col for col in [
-                "year",
-                "sport",
-                "gender",
-                "classification",
-                "champion",
-                "runner_up",
-                "head_coach",
-                "champion_score",
-                "runner_up_score",
-                "score_note",
-                "venue",
-                "link",
-            ]
-            if col in team_titles_df.columns
-        ]
-
-        all_titles = sort_titles_df(team_titles_df).copy()
-
-        if "_season_sort_key" in all_titles.columns:
-            all_titles = all_titles.drop(columns=["_season_sort_key"])
-
-        if "year" in all_titles.columns:
-            all_titles["year"] = pd.to_numeric(all_titles["year"], errors="coerce").astype("Int64")
-
-        st.dataframe(
-            all_titles[display_cols],
-            use_container_width=True,
-            hide_index=True,
-        )
-
-
 def render_school_page(schools_df, team_df):
     selected_school = render_school_selector(schools_df)
 
