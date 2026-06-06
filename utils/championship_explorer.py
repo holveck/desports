@@ -13,16 +13,14 @@ from utils.schools_page import (
 
 
 def build_score_display(row):
-    score_text = format_score_text(row)
+    base_score = format_score_text(row)
     score_note = str(row.get("score_note", "")).strip()
 
-    if score_text and score_note:
-        if score_note.lower() not in score_text.lower():
-            return f"{score_text} ({score_note})"
-        return score_text
+    if base_score and score_note:
+        return f"{base_score} ({score_note})"
 
-    if score_text:
-        return score_text
+    if base_score:
+        return base_score
 
     if score_note:
         return score_note
@@ -30,21 +28,20 @@ def build_score_display(row):
     return ""
 
 
-def build_explorer_display_df(team_df):
-    df = sort_titles_df(team_df).copy()
-
-    if "_season_sort_key" in df.columns:
-        df = df.drop(columns=["_season_sort_key"])
+def build_display_df(team_df):
+    df = team_df.copy()
 
     if "year" in df.columns:
-        df["year"] = df["year"].astype("Int64")
+        df["year"] = pd.to_numeric(df["year"], errors="coerce")
+
+    df = sort_titles_df(df).copy()
 
     df["Sport"] = df.apply(format_sport_label, axis=1)
     df["Score"] = df.apply(build_score_display, axis=1)
     df["_story_url"] = df.apply(get_story_url, axis=1)
 
     display_df = pd.DataFrame({
-        "Year": df["year"].astype(str).replace("<NA>", ""),
+        "Year": df["year"].astype("Int64").astype(str).replace("<NA>", ""),
         "Sport": df["Sport"].fillna(""),
         "Classification": df["classification"].fillna("") if "classification" in df.columns else "",
         "Champion": df["champion"].fillna("") if "champion" in df.columns else "",
@@ -56,36 +53,6 @@ def build_explorer_display_df(team_df):
     })
 
     return display_df
-
-
-def sort_explorer_df(display_df, sort_by):
-    df = display_df.copy()
-
-    if sort_by == "Most recent":
-        return df.sort_values(
-            ["_year_numeric"],
-            ascending=[False],
-            na_position="last",
-            kind="stable",
-        )
-
-    if sort_by == "Year":
-        return df.sort_values(
-            ["_year_numeric", "Sport", "Champion"],
-            ascending=[False, True, True],
-            na_position="last",
-            kind="stable",
-        )
-
-    if sort_by == "Sport":
-        return df.sort_values(
-            ["Sport", "_year_numeric", "Champion"],
-            ascending=[True, False, True],
-            na_position="last",
-            kind="stable",
-        )
-
-    return df
 
 
 def render_explorer_table(display_df):
@@ -102,16 +69,17 @@ def render_explorer_table(display_df):
         champion_html = html.escape(str(row.get("Champion", "") or ""))
         runner_up_html = html.escape(str(row.get("Runner-up", "") or ""))
         venue_html = html.escape(str(row.get("Venue", "") or ""))
-        score_label = html.escape(str(row.get("Score", "") or ""))
+        score_text = str(row.get("Score", "") or "")
+        score_html_escaped = html.escape(score_text)
         story_url = str(row.get("_story_url", "") or "").strip()
 
-        if story_url and score_label:
+        if story_url and score_text:
             score_html = (
                 f'<a href="{html.escape(story_url)}" target="_blank" rel="noopener noreferrer" '
-                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">{score_label}</a>'
+                f'style="color:#1f2937;text-decoration:underline;text-underline-offset:2px;">{score_html_escaped}</a>'
             )
         else:
-            score_html = f"<span>{score_label}</span>"
+            score_html = score_html_escaped
 
         rows_html.append(
             f"""
@@ -134,12 +102,11 @@ def render_explorer_table(display_df):
             border-radius: 0.75rem;
             overflow: hidden;
             background: #ffffff;
+            margin-top: 0.4rem;
         }}
-
         .championship-table-scroll {{
             overflow-x: auto;
         }}
-
         table.championship-table {{
             width: 100%;
             border-collapse: collapse;
@@ -149,7 +116,6 @@ def render_explorer_table(display_df):
             line-height: 1.2;
             color: #1f2937;
         }}
-
         .championship-table thead th {{
             text-align: left;
             font-weight: 700;
@@ -158,19 +124,16 @@ def render_explorer_table(display_df):
             padding: 0.7rem 0.8rem;
             white-space: nowrap;
         }}
-
         .championship-table tbody td {{
             padding: 0.68rem 0.8rem;
             border-bottom: 1px solid rgba(49, 51, 63, 0.09);
             vertical-align: top;
         }}
-
         .championship-table tbody tr:last-child td {{
             border-bottom: none;
         }}
-
         .championship-table tbody tr:hover {{
-            background: rgba(248, 250, 252, 0.9);
+            background: rgba(248, 250, 252, 0.85);
         }}
     </style>
 
@@ -218,9 +181,33 @@ def render_championship_explorer(team_df, schools_df):
     if default_school not in school_options:
         default_school = "All schools"
 
-    control_col1, control_col2 = st.columns([1.45, 1])
+    base_df = team_df.copy()
+    base_df["Sport"] = base_df.apply(format_sport_label, axis=1)
 
-    with control_col1:
+    year_values = (
+        pd.to_numeric(base_df["year"], errors="coerce")
+        .dropna()
+        .astype(int)
+        .sort_values(ascending=False)
+        .unique()
+        .tolist()
+    )
+    year_options = ["All years"] + year_values
+
+    sport_values = (
+        base_df["Sport"]
+        .dropna()
+        .astype(str)
+        .loc[lambda s: s.str.strip() != ""]
+        .sort_values()
+        .unique()
+        .tolist()
+    )
+    sport_options = ["All sports"] + sport_values
+
+    col1, col2, col3 = st.columns([1.25, 1, 1])
+
+    with col1:
         selected_school = st.selectbox(
             "School",
             options=school_options,
@@ -228,17 +215,25 @@ def render_championship_explorer(team_df, schools_df):
             key="championship_explorer_school",
         )
 
-    with control_col2:
-        sort_by = st.selectbox(
-            "Sort by",
-            options=["Most recent", "Year", "Sport"],
+    with col2:
+        selected_year = st.selectbox(
+            "Sort by year",
+            options=year_options,
             index=0,
-            key="championship_explorer_sort",
+            key="championship_explorer_year",
+        )
+
+    with col3:
+        selected_sport = st.selectbox(
+            "Sort by sport",
+            options=sport_options,
+            index=0,
+            key="championship_explorer_sport",
         )
 
     st.session_state["explorer_selected_school"] = selected_school
 
-    filtered_df = team_df.copy()
+    filtered_df = base_df.copy()
 
     if selected_school != "All schools":
         school_match = normalize_school_name(selected_school)
@@ -246,13 +241,17 @@ def render_championship_explorer(team_df, schools_df):
             filtered_df["champion"].map(normalize_school_name) == school_match
         ].copy()
 
-    display_df = build_explorer_display_df(filtered_df)
-    display_df = sort_explorer_df(display_df, sort_by)
+    if selected_year != "All years":
+        filtered_df = filtered_df[
+            pd.to_numeric(filtered_df["year"], errors="coerce") == int(selected_year)
+        ].copy()
+
+    if selected_sport != "All sports":
+        filtered_df = filtered_df[filtered_df["Sport"] == selected_sport].copy()
+
+    display_df = build_display_df(filtered_df)
 
     if "_year_numeric" in display_df.columns:
         display_df = display_df.drop(columns=["_year_numeric"])
-
-    if "_story_url" not in display_df.columns:
-        display_df["_story_url"] = ""
 
     render_explorer_table(display_df)
