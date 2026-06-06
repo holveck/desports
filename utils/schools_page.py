@@ -18,6 +18,28 @@ def normalize_school_name(value):
     return text
 
 
+def smart_title_case(text):
+    if not text:
+        return ""
+
+    small_words = {"and"}
+
+    words = str(text).strip().split()
+    if not words:
+        return ""
+
+    titled_words = [words[0].capitalize()]
+
+    for word in words[1:]:
+        lower_word = word.lower()
+        if lower_word in small_words:
+            titled_words.append(lower_word)
+        else:
+            titled_words.append(word.capitalize())
+
+    return " ".join(titled_words)
+
+
 def get_school_record(schools_df, canonical_name):
     match = schools_df[schools_df["canonical_name"] == canonical_name]
     if match.empty:
@@ -93,13 +115,6 @@ def render_school_identity_card(summary):
     primary_color = str(primary_color).strip()
     if not primary_color.startswith("#"):
         primary_color = f"#{primary_color}"
-
-    secondary_color = school.get("secondary_color", "#ffffff")
-    if pd.isna(secondary_color) or not str(secondary_color).strip():
-        secondary_color = "#ffffff"
-    secondary_color = str(secondary_color).strip()
-    if not secondary_color.startswith("#"):
-        secondary_color = f"#{secondary_color}"
 
     nickname_text = ""
     if pd.notna(nickname) and str(nickname).strip():
@@ -223,7 +238,9 @@ def format_sport_label(row):
         "swimming",
         "swimming and diving",
         "indoor track",
+        "indoor track and field",
         "outdoor track",
+        "outdoor track and field",
         "track",
         "tennis",
         "volleyball",
@@ -231,9 +248,11 @@ def format_sport_label(row):
     }
 
     if gender in {"girls", "boys"} and sport.lower() in multi_gender_sports:
-        return f"{gender.title()} {sport}"
+        label = f"{gender.title()} {sport}"
+    else:
+        label = sport
 
-    return sport
+    return smart_title_case(label)
 
 
 def format_score_text(row):
