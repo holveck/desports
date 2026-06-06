@@ -252,10 +252,18 @@ def get_sport_display_label(row):
     return smart_title_case(label)
 
 
-def get_season_rank(row):
+def get_season_sort_key(row):
     sport_label = get_sport_display_label(row).lower()
 
     season_order = {
+        "boys basketball": 0,
+        "girls basketball": 0,
+        "wrestling": 0,
+        "boys swimming and diving": 0,
+        "girls swimming and diving": 0,
+        "boys indoor track and field": 0,
+        "girls indoor track and field": 0,
+
         "girls soccer": 1,
         "softball": 1,
         "baseball": 1,
@@ -267,23 +275,15 @@ def get_season_rank(row):
         "boys outdoor track and field": 1,
         "girls outdoor track and field": 1,
 
-        "boys basketball": 2,
-        "girls basketball": 2,
-        "wrestling": 2,
-        "boys swimming and diving": 2,
-        "girls swimming and diving": 2,
-        "boys indoor track and field": 2,
-        "girls indoor track and field": 2,
-
-        "boys cross country": 3,
-        "girls cross country": 3,
-        "football": 3,
-        "boys soccer": 3,
-        "girls volleyball": 3,
-        "field hockey": 3,
+        "boys cross country": 2,
+        "girls cross country": 2,
+        "football": 2,
+        "boys soccer": 2,
+        "girls volleyball": 2,
+        "field hockey": 2,
     }
 
-    return season_order.get(sport_label, 99)
+    return season_order.get(sport_label, -1)
 
 
 def sort_titles_df(df):
@@ -292,10 +292,10 @@ def sort_titles_df(df):
     if "year" in sorted_df.columns:
         sorted_df["year"] = pd.to_numeric(sorted_df["year"], errors="coerce")
 
-    sorted_df["_season_rank"] = sorted_df.apply(get_season_rank, axis=1)
+    sorted_df["_season_sort_key"] = sorted_df.apply(get_season_sort_key, axis=1)
     sorted_df = sorted_df.sort_values(
-        ["year", "_season_rank"],
-        ascending=[False, True],
+        ["year", "_season_sort_key"],
+        ascending=[False, False],
         na_position="last",
     )
 
@@ -359,8 +359,8 @@ def render_recent_championships(team_titles_df):
 
     recent_df = sort_titles_df(team_titles_df).head(3).copy()
 
-    if "_season_rank" in recent_df.columns:
-        recent_df = recent_df.drop(columns=["_season_rank"])
+    if "_season_sort_key" in recent_df.columns:
+        recent_df = recent_df.drop(columns=["_season_sort_key"])
 
     row_blocks = []
 
@@ -436,8 +436,8 @@ def render_all_team_titles(team_titles_df):
 
         all_titles = sort_titles_df(team_titles_df).copy()
 
-        if "_season_rank" in all_titles.columns:
-            all_titles = all_titles.drop(columns=["_season_rank"])
+        if "_season_sort_key" in all_titles.columns:
+            all_titles = all_titles.drop(columns=["_season_sort_key"])
 
         if "year" in all_titles.columns:
             all_titles["year"] = pd.to_numeric(all_titles["year"], errors="coerce").astype("Int64")
